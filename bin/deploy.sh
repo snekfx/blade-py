@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-SNAKE_BIN_DIR="$HOME/.local/bin/snek/blade"
+SNAKE_BIN_DIR="$HOME/.local/bin/snek"
 
 # Resolve repository root from bin/
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
