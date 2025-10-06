@@ -4740,8 +4740,11 @@ def learn_package(ecosystem: EcosystemData, package_name: str) -> bool:
     # Get the latest stable version
     latest_version = pkg_info.latest_stable_version or pkg_info.latest_version
 
-    # Load hub's Cargo.toml path
-    hub_cargo_path = Path(RUST_REPO_ROOT) / "oodx" / "projects" / "hub" / "Cargo.toml"
+    # Load hub's Cargo.toml path (using configurable HUB_PATH)
+    if not HUB_PATH:
+        print(f"{Colors.RED}❌ HUB_PATH not configured. Set HUB_HOME or HUB_PATH environment variable.{Colors.END}")
+        return False
+    hub_cargo_path = Path(HUB_PATH) / "Cargo.toml"
 
     # Determine which domain feature group this package belongs to
     domain = categorize_package(package_name)
