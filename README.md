@@ -36,60 +36,39 @@ BLADE is currently optimized for Rust/Cargo repositories and tightly integrated 
 
 ### Configuration
 
-BLADE requires knowledge of your Rust repository structure. You can configure this using environment variables:
+BLADE needs to know where your Rust repos and hub are located. Two options:
 
+**Option 1: Use blade-config.sh (auto-detect)**
 ```bash
-# Auto-configure (recommended)
 source ./blade-config.sh
+```
+Auto-detects paths and exports `RUST_REPO_ROOT` and `HUB_HOME` for current session.
 
-# Or manually set paths
-export RUST_REPO_ROOT=/path/to/your/rust/repos
-export HUB_HOME=/path/to/your/hub/repository  # Or HUB_PATH
+**Option 2: Set manually in ~/.bashrc or ~/.zshrc**
+```bash
+export RUST_REPO_ROOT="$HOME/repos/code/rust"
+export HUB_HOME="$RUST_REPO_ROOT/prods/oodx/hub"  # Or use HUB_PATH
 ```
 
-The configuration script will:
-- Auto-detect your RUST_REPO_ROOT by walking up from current directory
-- Auto-detect HUB_PATH by searching common locations:
-  - `rust/prods/oodx/hub` (current standard)
-  - `rust/oodx/projects/hub` (legacy)
-  - `rust/oodx/hub`
-  - `rust/hub`
-- Export variables for current session
-- Show commands to make configuration permanent
+**Supported variables:** `HUB_HOME` (recommended) or `HUB_PATH` (legacy). Auto-detection searches: `rust/prods/oodx/hub`, `rust/oodx/projects/hub`, `rust/oodx/hub`, `rust/hub`.
 
-**Making Configuration Permanent:**
-Add to your `~/.bashrc` or `~/.zshrc`:
+### Installation
+
 ```bash
-export RUST_REPO_ROOT="/home/user/repos/code/rust"
-export HUB_HOME="/home/user/repos/code/rust/prods/oodx/hub"  # Or use HUB_PATH
+# 1. Configure environment
+source ./blade-config.sh  # Or add exports to ~/.bashrc
+
+# 2. Deploy to system
+./bin/deploy.sh  # Installs to ~/.local/bin/snek/blade
+
+# 3. Use blade
+blade --help
 ```
 
-**Note:** Blade supports both `HUB_HOME` (recommended, matches your profile vars) and `HUB_PATH` (legacy).
-
-### Installation via deploy.sh
+**Development mode (no install):**
 ```bash
-# Configure environment first
 source ./blade-config.sh
-
-# Deploy blade to your system
-./bin/deploy.sh
-```
-
-The deployment script will:
-- Install blade to `~/.local/bin/odx/hub/blade`
-- Make the blade command available in your PATH
-- Display a deployment ceremony with version information
-- Show available blade commands
-- Test the installation and PATH availability
-
-### Manual Setup (Alternative)
-```bash
-# Configure paths
-source ./blade-config.sh
-
-# Run directly
 python blade.py --help
-python blade-repo.py --help
 ```
 
 ### XDG Directory Structure
