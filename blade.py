@@ -500,23 +500,23 @@ def get_parent_repo(cargo_path):
     return f"{parent_name}.{project_name}"
 
 def find_cargo_files(root_dir):
-    """Find all Cargo.toml files, excluding target, ref, _arch, archive, and howto directories"""
+    """Find all Cargo.toml files, excluding target, ref, _arch, archive, bak, dev, and howto directories"""
     cargo_files = []
     for root, dirs, files in os.walk(root_dir):
         # Get relative path from root_dir for checking
         rel_path = Path(root).relative_to(root_dir) if str(root).startswith(str(root_dir)) else Path(root)
         rel_parts = rel_path.parts if rel_path != Path('.') else []
 
-        # Skip if in ref, howto, or contains _arch/archive
+        # Skip if in ref, howto, or contains _arch/archive/bak/dev
         if rel_parts and (rel_parts[0] == 'ref' or
                          rel_parts[0] == 'howto' or
-                         any('_arch' in part or 'archive' in part for part in rel_parts)):
+                         any('_arch' in part or 'archive' in part or 'bak' in part or 'dev' in part for part in rel_parts)):
             dirs[:] = []  # Don't descend into subdirectories
             continue
 
-        # Skip target directories
+        # Skip target and backup/dev/archive directories
         dirs[:] = [d for d in dirs if d != 'target' and d != 'ref' and d != 'howto'
-                   and '_arch' not in d and 'archive' not in d]
+                   and '_arch' not in d and 'archive' not in d and 'bak' not in d and 'dev' not in d]
 
         if 'Cargo.toml' in files:
             cargo_path = Path(root) / 'Cargo.toml'
@@ -1315,7 +1315,7 @@ def find_all_cargo_files_fast() -> List[Path]:
         return []
 
     try:
-        # Use find command for speed, exclude target directories
+        # Use find command for speed, exclude target and backup/dev/archive directories
         cmd = [
             'find', RUST_REPO_ROOT,
             '-name', 'Cargo.toml',
@@ -1323,7 +1323,9 @@ def find_all_cargo_files_fast() -> List[Path]:
             '-not', '-path', '*/ref/*',
             '-not', '-path', '*/howto/*',
             '-not', '-path', '*/_arch/*',
-            '-not', '-path', '*/archive/*'
+            '-not', '-path', '*/archive/*',
+            '-not', '-path', '*/bak/*',
+            '-not', '-path', '*/dev/*'
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
@@ -4993,9 +4995,9 @@ def scan_git_dependencies(args=None):
         print(f"{Colors.RED}❌ RUST_REPO_ROOT not set{Colors.END}")
         return
 
-    # Find all Cargo.toml files
-    cargo_files = list(Path(RUST_REPO_ROOT).rglob('Cargo.toml'))
-    print(f"Found {len(cargo_files)} Cargo.toml files")
+    # Find all Cargo.toml files (using find_all_cargo_files_fast to respect exclusions)
+    cargo_files = find_all_cargo_files_fast()
+    print(f"Found {len(cargo_files)} Cargo.toml files (excluding bak/dev/archive/howto/ref)")
     print()
 
     git_deps = {}  # {git_url: [(cargo_file, dep_name, ref)]}
