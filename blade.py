@@ -16,6 +16,8 @@ Flags:
   --force          Bypass git safety checks (main branch requirement and clean working directory)
 """
 
+__version__ = "2.0.0"
+
 import os
 import sys
 try:
@@ -207,12 +209,28 @@ if not RUST_REPO_ROOT:
         possible_paths = [
             Path.home() / 'repos' / 'code' / 'rust',
             Path('/home/xnull/repos/code/rust'),
-            Path.cwd().parent.parent.parent  # Assume we're in rust/oodx/projects/hub
+            Path.cwd().parent.parent.parent.parent  # Assume we're deeper in the tree
         ]
         for path in possible_paths:
             if path.exists() and path.name == 'rust':
                 RUST_REPO_ROOT = str(path)
                 break
+
+# Get HUB_PATH environment variable or auto-detect
+# Prioritize HUB_HOME (user's standard var) over HUB_PATH
+HUB_PATH = os.environ.get('HUB_HOME') or os.environ.get('HUB_PATH')
+if not HUB_PATH and RUST_REPO_ROOT:
+    # Try common hub locations
+    hub_search_paths = [
+        Path(RUST_REPO_ROOT) / "prods" / "oodx" / "hub",  # New location
+        Path(RUST_REPO_ROOT) / "oodx" / "projects" / "hub",  # Old location
+        Path(RUST_REPO_ROOT) / "oodx" / "hub",
+        Path(RUST_REPO_ROOT) / "hub"
+    ]
+    for hub_path in hub_search_paths:
+        if hub_path.exists() and (hub_path / "Cargo.toml").exists():
+            HUB_PATH = str(hub_path)
+            break
 
 # Legacy color palette from colors.rs
 class Colors:
@@ -1361,27 +1379,22 @@ def get_repo_info(cargo_path: Path) -> Optional[Dict]:
 
 def get_hub_info() -> Optional[HubInfo]:
     """Get hub repository information using the general repo helper"""
-    if not RUST_REPO_ROOT:
+    if not HUB_PATH:
         return None
 
-    # Look for hub directory in common locations
-    hub_paths = [
-        Path(RUST_REPO_ROOT) / "oodx" / "projects" / "hub",
-        Path(RUST_REPO_ROOT) / "oodx" / "hub",
-        Path(RUST_REPO_ROOT) / "hub"
-    ]
+    # Use configured HUB_PATH
+    hub_path = Path(HUB_PATH)
+    cargo_path = hub_path / "Cargo.toml"
 
-    for hub_path in hub_paths:
-        cargo_path = hub_path / "Cargo.toml"
-        if cargo_path.exists():
-            repo_info = get_repo_info(cargo_path)
-            if repo_info:
-                return HubInfo(
-                    path=repo_info['rel_path'],
-                    version=repo_info['version'],
-                    dependencies=repo_info['dependencies'],
-                    last_update=repo_info['last_update']
-                )
+    if cargo_path.exists():
+        repo_info = get_repo_info(cargo_path)
+        if repo_info:
+            return HubInfo(
+                path=repo_info['rel_path'],
+                version=repo_info['version'],
+                dependencies=repo_info['dependencies'],
+                last_update=repo_info['last_update']
+            )
 
     return None
 
@@ -2084,7 +2097,11 @@ def format_aggregation_summary(ecosystem: EcosystemData) -> str:
 def get_hub_dependencies():
     """Get dependencies from hub's Cargo.toml"""
     hub_deps = {}
-    hub_cargo_path = Path(RUST_REPO_ROOT) / "oodx" / "projects" / "hub" / "Cargo.toml"
+
+    if not HUB_PATH:
+        return hub_deps
+
+    hub_cargo_path = Path(HUB_PATH) / "Cargo.toml"
 
     if hub_cargo_path.exists():
         try:

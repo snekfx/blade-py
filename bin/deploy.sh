@@ -7,8 +7,8 @@ SNAKE_BIN_DIR="$HOME/.local/bin/snek"
 # Resolve repository root from bin/
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Extract version from Cargo.toml at repo root for display
-VERSION=$(grep '^version' "$ROOT_DIR/Cargo.toml" | head -1 | cut -d'"' -f2 2>/dev/null || echo "unknown")
+# Extract version from blade.py or default
+VERSION=$(grep -E "^__version__|^VERSION\s*=" "$ROOT_DIR/blade.py" | head -1 | cut -d'"' -f2 2>/dev/null || echo "2.0.0-dev")
 
 # Display deployment ceremony
 echo "╔════════════════════════════════════════════════╗"

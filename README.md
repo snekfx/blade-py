@@ -34,11 +34,42 @@ BLADE is currently optimized for Rust/Cargo repositories and tightly integrated 
 - Rust/Cargo (for Rust ecosystem analysis)
 - Optional: `boxy` tool for enhanced formatting
 
+### Configuration
+
+BLADE requires knowledge of your Rust repository structure. You can configure this using environment variables:
+
+```bash
+# Auto-configure (recommended)
+source ./blade-config.sh
+
+# Or manually set paths
+export RUST_REPO_ROOT=/path/to/your/rust/repos
+export HUB_HOME=/path/to/your/hub/repository  # Or HUB_PATH
+```
+
+The configuration script will:
+- Auto-detect your RUST_REPO_ROOT by walking up from current directory
+- Auto-detect HUB_PATH by searching common locations:
+  - `rust/prods/oodx/hub` (current standard)
+  - `rust/oodx/projects/hub` (legacy)
+  - `rust/oodx/hub`
+  - `rust/hub`
+- Export variables for current session
+- Show commands to make configuration permanent
+
+**Making Configuration Permanent:**
+Add to your `~/.bashrc` or `~/.zshrc`:
+```bash
+export RUST_REPO_ROOT="/home/user/repos/code/rust"
+export HUB_HOME="/home/user/repos/code/rust/prods/oodx/hub"  # Or use HUB_PATH
+```
+
+**Note:** Blade supports both `HUB_HOME` (recommended, matches your profile vars) and `HUB_PATH` (legacy).
+
 ### Installation via deploy.sh
 ```bash
-# Clone the hub repository
-git clone <hub-repository>
-cd hub
+# Configure environment first
+source ./blade-config.sh
 
 # Deploy blade to your system
 ./bin/deploy.sh
@@ -53,10 +84,12 @@ The deployment script will:
 
 ### Manual Setup (Alternative)
 ```bash
-# Currently part of hub project - manual usage
-git clone <hub-repository>
-cd hub/bin
-python repos.py --help
+# Configure paths
+source ./blade-config.sh
+
+# Run directly
+python blade.py --help
+python blade-repo.py --help
 ```
 
 ### XDG Directory Structure
