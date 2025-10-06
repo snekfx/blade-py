@@ -173,31 +173,44 @@ blade superclean
 # Scan for broken/inaccessible git dependencies
 blade scan-git
 
-# Fix cargo config for private git repos
+# Auto-convert HTTPS to SSH URLs across all Cargo.toml files
+blade scan-git fix-urls [--dry-run]
+
+# Configure cargo for SSH authentication
 blade fix-git [--dry-run]
 ```
 
-**blade scan-git** - Identifies problems:
+**blade scan-git** - Diagnostic scan:
 - Tests all git dependencies for accessibility
 - Reports which repos need authentication
-- Shows which Cargo.toml files need updating
-- Detects repos that have moved (GitHub → GitLab)
+- Shows which Cargo.toml files have broken URLs
+- Detects repos that moved (GitHub → GitLab)
 
-**blade fix-git** - Fixes configuration:
-- Adds `git-fetch-with-cli = true` to `~/.cargo/config.toml` (non-destructive)
-- Checks SSH config for GitLab/GitHub profiles
-- Provides setup instructions
+**blade scan-git fix-urls** - Auto-fix all repos:
+- Converts `https://github.com/` → `ssh://git@github.com/`
+- Converts `https://gitlab.com/` → `ssh://git@gitlab.com/`
+- Updates ALL Cargo.toml files across your workspace
+- Use `--dry-run` to preview changes
 
-**For private repos, ensure:**
-1. `~/.cargo/config.toml` has `[net]` section with `git-fetch-with-cli = true`
-2. `~/.ssh/config` has host entries for gitlab.com/github.com
-3. Cargo.toml uses SSH URLs: `rsb = { git = "ssh://git@gitlab.com/oodx/rsb.git", branch = "main" }`
+**blade fix-git** - Configure cargo:
+- Adds `git-fetch-with-cli = true` to `~/.cargo/config.toml`
+- Validates SSH config
+- Shows setup instructions
 
-**Fix workflow:**
+**Complete fix workflow:**
 ```bash
-blade scan-git          # Find broken deps
-blade fix-git          # Configure cargo
-# Then manually update Cargo.toml files to use SSH URLs
+# 1. Scan to see what's broken
+blade scan-git
+
+# 2. Auto-fix all HTTPS → SSH URLs (dry-run first)
+blade scan-git fix-urls --dry-run
+blade scan-git fix-urls
+
+# 3. Configure cargo for SSH
+blade fix-git
+
+# 4. Verify
+blade scan-git
 ```
 
 ## Command Flags

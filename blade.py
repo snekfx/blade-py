@@ -4974,13 +4974,19 @@ def learn_all_opportunities(ecosystem: EcosystemData) -> int:
 
     return learned_count
 
-def scan_git_dependencies():
+def scan_git_dependencies(args=None):
     """Scan all Cargo.toml files for git dependencies and test accessibility"""
     import subprocess
     from pathlib import Path
 
+    fix_urls = args and args.package == 'fix-urls'
+    dry_run = args and args.dry_run
+
     print(f"{Colors.CYAN}{Colors.BOLD}🔍 Git Dependency Scanner{Colors.END}")
     print(f"{Colors.GRAY}Scanning for git dependencies and testing accessibility...{Colors.END}")
+    if fix_urls:
+        mode = "DRY RUN - no changes" if dry_run else "WILL FIX URLS"
+        print(f"{Colors.YELLOW}Mode: {mode}{Colors.END}")
     print()
 
     if not RUST_REPO_ROOT:
@@ -5124,13 +5130,61 @@ def scan_git_dependencies():
             print(f"    Used in {len(uses)} file(s)")
         print()
 
+    # Auto-fix HTTPS URLs to SSH if requested
+    if fix_urls and (needs_auth or https_deps):
+        print()
+        print(f"{Colors.CYAN}{Colors.BOLD}🔧 Auto-fixing HTTPS URLs to SSH:{Colors.END}")
+        print()
+
+        fixed_count = 0
+        for cargo_path in cargo_files:
+            try:
+                with open(cargo_path, 'r') as f:
+                    content = f.read()
+
+                modified = False
+                new_content = content
+
+                # Convert common HTTPS patterns to SSH
+                replacements = [
+                    ('https://github.com/', 'ssh://git@github.com/'),
+                    ('https://gitlab.com/', 'ssh://git@gitlab.com/'),
+                ]
+
+                for old, new in replacements:
+                    if old in new_content:
+                        new_content = new_content.replace(old, new)
+                        modified = True
+
+                if modified:
+                    rel_path = str(cargo_path).replace(str(RUST_REPO_ROOT) + '/', '')
+                    if dry_run:
+                        print(f"{Colors.YELLOW}Would update: {rel_path}{Colors.END}")
+                    else:
+                        with open(cargo_path, 'w') as f:
+                            f.write(new_content)
+                        print(f"{Colors.GREEN}✓ Updated: {rel_path}{Colors.END}")
+                    fixed_count += 1
+
+            except Exception as e:
+                print(f"{Colors.RED}✗ Error processing {cargo_path}: {e}{Colors.END}")
+
+        print()
+        if dry_run:
+            print(f"{Colors.YELLOW}Dry run: Would fix {fixed_count} files{Colors.END}")
+        else:
+            print(f"{Colors.GREEN}✅ Fixed {fixed_count} Cargo.toml files{Colors.END}")
+            print(f"{Colors.CYAN}Run 'cargo check' to verify changes{Colors.END}")
+        print()
+
     # Provide actionable summary
     print(f"{Colors.CYAN}{Colors.BOLD}🔧 Action Items:{Colors.END}")
     if not_found:
         print(f"1. Update {len(not_found)} broken git URL(s) in Cargo.toml files")
         print(f"   (Repos may have moved from GitHub to GitLab)")
     if needs_auth:
-        print(f"2. Run 'blade fix-git' to enable SSH authentication for private repos")
+        print(f"2. Run 'blade scan-git fix-urls' to auto-convert HTTPS to SSH")
+        print(f"3. Run 'blade fix-git' to enable SSH authentication for private repos")
     if not not_found and not needs_auth:
         print(f"{Colors.GREEN}✓ All git dependencies are accessible!{Colors.END}")
 
@@ -5407,7 +5461,7 @@ def main():
         elif args.command == 'fix-git':
             fix_git_config(args)
         elif args.command == 'scan-git':
-            scan_git_dependencies()
+            scan_git_dependencies(args)
 
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}⚠️  Operation interrupted by user{Colors.END}")
