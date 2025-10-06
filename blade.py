@@ -1574,48 +1574,88 @@ def resolve_workspace_version(cargo_path: Path, dep_info: dict) -> str:
     return "WORKSPACE"
 
 def resolve_git_version(git_repo: str, git_ref: str) -> str:
-    """Resolve version from git dependency using gh command"""
+    """Resolve version from git dependency - handles both public and private repos"""
+    import subprocess
+
     try:
-        # Extract owner/repo from git URL
+        # Method 1: Try GitHub API for public GitHub repos
         if "github.com/" in git_repo:
-            # Handle both SSH and HTTPS URLs
+            repo_path = None
             if git_repo.startswith("git@github.com:"):
                 repo_path = git_repo.replace("git@github.com:", "").replace(".git", "")
             elif git_repo.startswith("https://github.com/"):
                 repo_path = git_repo.replace("https://github.com/", "").replace(".git", "")
+            elif git_repo.startswith("ssh://git@github.com/"):
+                repo_path = git_repo.replace("ssh://git@github.com/", "").replace(".git", "")
+
+            if repo_path:
+                try:
+                    import base64
+                    result = subprocess.run([
+                        "gh", "api", f"repos/{repo_path}/contents/Cargo.toml",
+                        "--jq", ".content"
+                    ], capture_output=True, text=True, timeout=10)
+
+                    if result.returncode == 0:
+                        content = base64.b64decode(result.stdout.strip()).decode('utf-8')
+                        cargo_data = load_toml(content, is_string=True)
+                        if 'package' in cargo_data and 'version' in cargo_data['package']:
+                            return cargo_data['package']['version']
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError, Exception):
+                    pass
+
+        # Method 2: Try git ls-remote + sparse checkout for any git repo (including private)
+        try:
+            # Test if we can access the repo
+            result = subprocess.run(
+                ['git', 'ls-remote', '--heads', git_repo],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                # Repo is accessible - try to get Cargo.toml via git archive
+                try:
+                    # Use git archive to get just Cargo.toml
+                    archive_result = subprocess.run(
+                        ['git', 'archive', '--remote', git_repo, git_ref, 'Cargo.toml'],
+                        capture_output=True,
+                        timeout=10
+                    )
+
+                    if archive_result.returncode == 0:
+                        # Extract and parse Cargo.toml from tar
+                        import tarfile
+                        import io
+                        tar_data = io.BytesIO(archive_result.stdout)
+                        with tarfile.open(fileobj=tar_data, mode='r') as tar:
+                            cargo_toml = tar.extractfile('Cargo.toml')
+                            if cargo_toml:
+                                content = cargo_toml.read().decode('utf-8')
+                                cargo_data = load_toml(content, is_string=True)
+                                if 'package' in cargo_data and 'version' in cargo_data['package']:
+                                    return cargo_data['package']['version']
+                except Exception:
+                    pass
+
+                # Repo accessible but couldn't get version - return ref indicator
+                return f"GIT#{git_ref[:8] if len(git_ref) > 8 else git_ref}"
             else:
-                return f"GIT#{git_ref[:8]}"
+                # Check if it's an auth issue
+                error_msg = result.stderr.lower()
+                if 'permission denied' in error_msg or 'authentication failed' in error_msg:
+                    return "AUTH_REQUIRED"
+                elif 'not found' in error_msg or 'could not read' in error_msg:
+                    return "NOT_FOUND"
+                else:
+                    return "GIT_ERROR"
+        except subprocess.TimeoutExpired:
+            return "TIMEOUT"
+        except Exception:
+            pass
 
-            # Try to get version from Cargo.toml in the repository
-            import subprocess
-            import json
-            import base64
-
-            try:
-                # Get Cargo.toml content from specific branch/commit
-                result = subprocess.run([
-                    "gh", "api", f"repos/{repo_path}/contents/Cargo.toml",
-                    "--jq", ".content"
-                ], capture_output=True, text=True, timeout=10)
-
-                if result.returncode == 0:
-                    # Decode base64 content and parse TOML
-                    content = base64.b64decode(result.stdout.strip()).decode('utf-8')
-                    cargo_data = load_toml(content, is_string=True)
-
-                    if 'package' in cargo_data and 'version' in cargo_data['package']:
-                        version = cargo_data['package']['version']
-                        # Return just the semantic version, not git hash
-                        return version
-
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, Exception):
-                pass
-
-            # Fallback: if we can't get Cargo.toml, assume a reasonable default
-            # This handles cases where the repo exists but Cargo.toml is missing/inaccessible
-            return "0.0.0"
-
-        # Ultimate fallback for non-GitHub repos
+        # Ultimate fallback
         return "0.0.0"
 
     except Exception as e:
@@ -4925,6 +4965,133 @@ def learn_all_opportunities(ecosystem: EcosystemData) -> int:
 
     return learned_count
 
+def fix_git_config(args):
+    """Fix cargo config for private git dependencies"""
+    import subprocess
+    from pathlib import Path
+
+    print(f"{Colors.CYAN}{Colors.BOLD}🔧 Git Dependency Configuration Fixer{Colors.END}")
+    print()
+
+    cargo_config_path = Path.home() / ".cargo" / "config.toml"
+    cargo_config_dir = Path.home() / ".cargo"
+
+    # Check current status
+    has_git_fetch_cli = False
+    if cargo_config_path.exists():
+        try:
+            config = load_toml(cargo_config_path)
+            net_section = config.get('net', {})
+            has_git_fetch_cli = net_section.get('git-fetch-with-cli') == True
+        except:
+            pass
+
+    if has_git_fetch_cli:
+        print(f"{Colors.GREEN}✓ Cargo is already configured for private git dependencies{Colors.END}")
+        print(f"  git-fetch-with-cli = true is set in {cargo_config_path}")
+    else:
+        print(f"{Colors.YELLOW}⚠️  Cargo is not configured for private git dependencies{Colors.END}")
+        print(f"  Missing: git-fetch-with-cli = true in [net] section")
+        print()
+
+        if args.dry_run:
+            print(f"{Colors.CYAN}Would add to {cargo_config_path}:{Colors.END}")
+            print(f"{Colors.WHITE}[net]{Colors.END}")
+            print(f"{Colors.WHITE}git-fetch-with-cli = true{Colors.END}")
+            print()
+            print(f"{Colors.YELLOW}⚠️  Dry run mode - no changes made{Colors.END}")
+            return
+
+        # Fix it
+        try:
+            cargo_config_dir.mkdir(parents=True, exist_ok=True)
+
+            # Read existing config
+            existing_config = ""
+            if cargo_config_path.exists():
+                with open(cargo_config_path, 'r') as f:
+                    existing_config = f.read()
+
+            # Check if [net] section exists
+            has_net_section = '[net]' in existing_config
+
+            if not has_net_section:
+                # Add entire [net] section
+                with open(cargo_config_path, 'a') as f:
+                    f.write("\n[net]\ngit-fetch-with-cli = true\n")
+                print(f"{Colors.GREEN}✓ Added [net] section with git-fetch-with-cli = true{Colors.END}")
+            else:
+                # Add just the setting to existing [net] section
+                lines = existing_config.split('\n')
+                new_lines = []
+                in_net_section = False
+                added = False
+
+                for line in lines:
+                    new_lines.append(line)
+                    if line.strip() == '[net]':
+                        in_net_section = True
+                    elif in_net_section and line.strip().startswith('['):
+                        if not added:
+                            new_lines.insert(-1, 'git-fetch-with-cli = true')
+                            added = True
+                        in_net_section = False
+
+                if in_net_section and not added:
+                    new_lines.append('git-fetch-with-cli = true')
+
+                with open(cargo_config_path, 'w') as f:
+                    f.write('\n'.join(new_lines))
+
+                print(f"{Colors.GREEN}✓ Added git-fetch-with-cli = true to [net] section{Colors.END}")
+
+            print(f"\n{Colors.GREEN}✅ Cargo config updated: {cargo_config_path}{Colors.END}")
+            print(f"   Git dependencies will now use system git with SSH auth")
+
+        except Exception as e:
+            print(f"{Colors.RED}❌ Error fixing cargo config: {e}{Colors.END}")
+            return
+
+    # Check for SSH config
+    print()
+    print(f"{Colors.CYAN}📋 SSH Configuration:{Colors.END}")
+    ssh_config_path = Path.home() / ".ssh" / "config"
+
+    if ssh_config_path.exists():
+        try:
+            with open(ssh_config_path, 'r') as f:
+                ssh_content = f.read()
+
+            # Look for GitLab and GitHub entries
+            has_gitlab = 'gitlab.com' in ssh_content.lower()
+            has_github = 'github.com' in ssh_content.lower()
+
+            if has_gitlab:
+                print(f"{Colors.GREEN}✓ GitLab SSH profile found{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠ No GitLab SSH profile in ~/.ssh/config{Colors.END}")
+
+            if has_github:
+                print(f"{Colors.GREEN}✓ GitHub SSH profile found{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠ No GitHub SSH profile in ~/.ssh/config{Colors.END}")
+
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Could not read SSH config: {e}{Colors.END}")
+    else:
+        print(f"{Colors.YELLOW}⚠️  No SSH config found at ~/.ssh/config{Colors.END}")
+
+    # Next steps
+    print()
+    print(f"{Colors.CYAN}{Colors.BOLD}📚 Next Steps:{Colors.END}")
+    print(f"1. Ensure your SSH keys are added to ssh-agent:")
+    print(f"   {Colors.WHITE}ssh-add ~/.ssh/your_private_key{Colors.END}")
+    print(f"2. Test git access to private repos:")
+    print(f"   {Colors.WHITE}git ls-remote ssh://git@gitlab.com/your-org/your-repo.git{Colors.END}")
+    print(f"3. Update Cargo.toml dependencies to use SSH URLs:")
+    print(f"   {Colors.WHITE}rsb = {{ git = \"ssh://git@gitlab.com/oodx/rsb.git\", branch = \"main\" }}{Colors.END}")
+    print(f"4. Restart any running cargo processes")
+
 def main():
     def signal_handler(signum, frame):
         """Global signal handler for graceful exit"""
@@ -4949,7 +5116,7 @@ def main():
     parser = argparse.ArgumentParser(description="Rust dependency analyzer with enhanced commands")
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
-                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes'],
+                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git'],
                        help='Command to run')
     parser.add_argument('package', nargs='?', help='Package/repo name for pkg/latest/search/graph/learn/notes commands or "all" for learn all')
     parser.add_argument('--ssh-profile', default=None, help='SSH profile/host for git operations (e.g., "qodeninja" for git@qodeninja)')
@@ -5068,6 +5235,8 @@ def main():
         elif args.command == 'legacy':
             # Legacy analyze command for backwards compatibility
             analyze_package_usage(dependencies)
+        elif args.command == 'fix-git':
+            fix_git_config(args)
 
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}⚠️  Operation interrupted by user{Colors.END}")
