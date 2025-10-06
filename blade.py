@@ -1289,6 +1289,7 @@ class LatestData:
     source_value: str  # crates.io version, local path, git repo, or "WORKSPACE"
     hub_version: str  # Hub's version or "NONE"
     hub_status: str   # "current", "outdated", "gap", "none"
+    git_status: str = "OK"  # For git deps: "OK", "AUTH_REQUIRED", "NOT_FOUND", "TIMEOUT", "HTTPS_WARNING"
 
 @dataclass
 class VersionMapData:
@@ -1552,8 +1553,9 @@ def parse_dependency_info(dep_info, cargo_path: Path) -> Tuple[Optional[str], st
             # Git dependency: some-crate = { git = "https://..." }
             git_repo = dep_info['git']
             git_ref = dep_info.get('rev', dep_info.get('branch', dep_info.get('tag', 'HEAD')))
-            git_version = resolve_git_version(git_repo, git_ref)
-            return git_version, features, "git", f"{git_repo}#{git_ref}"
+            # Don't resolve version during parsing - will be resolved in batch_fetch_latest_versions
+            # This avoids hanging during the dependency extraction phase
+            return "git", features, "git", f"{git_repo}#{git_ref}"
     return None, "NONE", "unknown", "NONE"
 
 def resolve_local_version(cargo_path: Path, relative_path: str) -> str:
@@ -1606,65 +1608,64 @@ def resolve_git_version(git_repo: str, git_ref: str) -> str:
                 except (subprocess.TimeoutExpired, subprocess.CalledProcessError, Exception):
                     pass
 
-        # Method 2: Try git ls-remote + sparse checkout for any git repo (including private)
-        # Skip HTTPS URLs to avoid credential prompts - only works with SSH
-        if not git_repo.startswith('https://'):
-            try:
-                # Test if we can access the repo
-                # Set GIT_TERMINAL_PROMPT=0 to disable credential prompts
-                git_env = {**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
+        # Method 2: Try git ls-remote for any git repo (SSH or HTTPS)
+        # Use GIT_TERMINAL_PROMPT=0 to prevent credential prompts
+        try:
+            # Test if we can access the repo
+            # Set GIT_TERMINAL_PROMPT=0 to disable credential prompts
+            git_env = {**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
 
-                result = subprocess.run(
-                    ['git', 'ls-remote', '--heads', git_repo],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    env=git_env,
-                    stdin=subprocess.DEVNULL  # Block any credential prompts
-                )
+            result = subprocess.run(
+                ['git', 'ls-remote', '--heads', git_repo],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                env=git_env,
+                stdin=subprocess.DEVNULL  # Block any credential prompts
+            )
 
-                if result.returncode == 0:
-                    # Repo is accessible - try to get Cargo.toml via git archive
-                    try:
-                        # Use git archive to get just Cargo.toml
-                        archive_result = subprocess.run(
-                            ['git', 'archive', '--remote', git_repo, git_ref, 'Cargo.toml'],
-                            capture_output=True,
-                            timeout=5,
-                            env=git_env,
-                            stdin=subprocess.DEVNULL  # Block any credential prompts
-                        )
+            if result.returncode == 0:
+                # Repo is accessible - try to get Cargo.toml via git archive
+                try:
+                    # Use git archive to get just Cargo.toml
+                    archive_result = subprocess.run(
+                        ['git', 'archive', '--remote', git_repo, git_ref, 'Cargo.toml'],
+                        capture_output=True,
+                        timeout=5,
+                        env=git_env,
+                        stdin=subprocess.DEVNULL  # Block any credential prompts
+                    )
 
-                        if archive_result.returncode == 0:
-                            # Extract and parse Cargo.toml from tar
-                            import tarfile
-                            import io
-                            tar_data = io.BytesIO(archive_result.stdout)
-                            with tarfile.open(fileobj=tar_data, mode='r') as tar:
-                                cargo_toml = tar.extractfile('Cargo.toml')
-                                if cargo_toml:
-                                    content = cargo_toml.read().decode('utf-8')
-                                    cargo_data = load_toml(content, is_string=True)
-                                    if 'package' in cargo_data and 'version' in cargo_data['package']:
-                                        return cargo_data['package']['version']
-                    except Exception:
-                        pass
+                    if archive_result.returncode == 0:
+                        # Extract and parse Cargo.toml from tar
+                        import tarfile
+                        import io
+                        tar_data = io.BytesIO(archive_result.stdout)
+                        with tarfile.open(fileobj=tar_data, mode='r') as tar:
+                            cargo_toml = tar.extractfile('Cargo.toml')
+                            if cargo_toml:
+                                content = cargo_toml.read().decode('utf-8')
+                                cargo_data = load_toml(content, is_string=True)
+                                if 'package' in cargo_data and 'version' in cargo_data['package']:
+                                    return cargo_data['package']['version']
+                except Exception:
+                    pass
 
-                    # Repo accessible but couldn't get version - return ref indicator
-                    return f"GIT#{git_ref[:8] if len(git_ref) > 8 else git_ref}"
+                # Repo accessible but couldn't get version - return ref indicator
+                return f"GIT#{git_ref[:8] if len(git_ref) > 8 else git_ref}"
+            else:
+                # Check if it's an auth issue
+                error_msg = result.stderr.lower()
+                if 'permission denied' in error_msg or 'authentication failed' in error_msg:
+                    return "AUTH_REQUIRED"
+                elif 'not found' in error_msg or 'could not read' in error_msg:
+                    return "NOT_FOUND"
                 else:
-                    # Check if it's an auth issue
-                    error_msg = result.stderr.lower()
-                    if 'permission denied' in error_msg or 'authentication failed' in error_msg:
-                        return "AUTH_REQUIRED"
-                    elif 'not found' in error_msg or 'could not read' in error_msg:
-                        return "NOT_FOUND"
-                    else:
-                        return "GIT_ERROR"
-            except subprocess.TimeoutExpired:
-                return "TIMEOUT"
-            except Exception:
-                pass
+                    return "GIT_ERROR"
+        except subprocess.TimeoutExpired:
+            return "TIMEOUT"
+        except Exception:
+            pass
 
         # Ultimate fallback
         return "0.0.0"
@@ -1706,12 +1707,12 @@ def collect_unique_packages(deps: List[DepData]) -> Set[str]:
         packages.add(dep.pkg_name)
     return packages
 
-def create_local_repo_lookup(repos: List[RepoData]) -> Dict[str, str]:
-    """Create a lookup map from package names to local paths"""
+def create_local_repo_lookup(repos: List[RepoData]) -> Dict[str, tuple]:
+    """Create a lookup map from package names to (path, version)"""
     local_lookup = {}
     for repo in repos:
-        # Map repo name to its path for LOCAL flag detection
-        local_lookup[repo.repo_name] = repo.path
+        # Map repo name to (path, version) for LOCAL flag and version detection
+        local_lookup[repo.repo_name] = (repo.path, repo.cargo_version)
     return local_lookup
 
 def batch_fetch_latest_versions(packages_with_sources: Dict[str, Tuple[str, str]], hub_info: Optional[HubInfo] = None, repos: Optional[List[RepoData]] = None, fast_mode: bool = False) -> Dict[str, LatestData]:
@@ -1733,6 +1734,8 @@ def batch_fetch_latest_versions(packages_with_sources: Dict[str, Tuple[str, str]
             progress.update(processed, f"Fetching {pkg_name}...")
 
             # Fetch version based on source type
+            git_dep_status = "OK"  # Default status for non-git deps
+
             if source_type == "crate":
                 latest_version = get_latest_version(pkg_name)
                 latest_stable_version = get_latest_stable_version(pkg_name)
@@ -1742,8 +1745,29 @@ def batch_fetch_latest_versions(packages_with_sources: Dict[str, Tuple[str, str]
                     repo_url, git_ref = source_value.split("#", 1)
                 else:
                     repo_url, git_ref = source_value, "main"
-                latest_version = resolve_git_version(repo_url, git_ref)
-                latest_stable_version = latest_version  # For git, stable = latest
+
+                # Check if this git repo is available locally first
+                if pkg_name in local_lookup:
+                    # Use version from local repo (already parsed in RepoData)
+                    local_path, local_version = local_lookup[pkg_name]
+                    latest_version = local_version
+                    latest_stable_version = local_version
+                    git_dep_status = "OK"
+                else:
+                    # Try to resolve version from remote git (works for both SSH and HTTPS)
+                    latest_version = resolve_git_version(repo_url, git_ref)
+                    latest_stable_version = latest_version  # For git, stable = latest
+
+                    # Determine git status from version string - warn only on actual failures
+                    if latest_version in ["AUTH_REQUIRED", "NOT_FOUND", "TIMEOUT", "GIT_ERROR"]:
+                        git_dep_status = latest_version
+                    elif latest_version == "0.0.0":
+                        # Couldn't resolve version - repo may not exist or be inaccessible
+                        git_dep_status = "UNREACHABLE"
+                    elif latest_version.startswith("GIT#"):
+                        git_dep_status = "NO_VERSION"
+                    else:
+                        git_dep_status = "OK"
             elif source_type == "local":
                 # For local dependencies, we'll need to resolve from the local path
                 latest_version = "LOCAL"
@@ -1759,8 +1783,9 @@ def batch_fetch_latest_versions(packages_with_sources: Dict[str, Tuple[str, str]
                 # Check if git repos are also available locally
                 final_source_value = source_value
                 if source_type == "git" and pkg_name in local_lookup:
-                    # Git repo is also available locally - add LOCAL flag
-                    final_source_value = f"{source_value} (LOCAL: {local_lookup[pkg_name]})"
+                    # Git repo is also available locally - add LOCAL flag with path
+                    local_path, _ = local_lookup[pkg_name]
+                    final_source_value = f"{source_value} (LOCAL: {local_path})"
 
                 # Check if package is in hub
                 if hub_info and pkg_name in hub_info.dependencies:
@@ -1792,7 +1817,8 @@ def batch_fetch_latest_versions(packages_with_sources: Dict[str, Tuple[str, str]
                     source_type=source_type,
                     source_value=final_source_value,
                     hub_version=hub_version,
-                    hub_status=hub_status
+                    hub_status=hub_status,
+                    git_status=git_dep_status
                 )
                 pkg_id += 1
 
@@ -1934,9 +1960,9 @@ def write_tsv_cache(repos: List[RepoData], deps: List[DepData], latest_versions:
 
         # Section 3: LATEST LIST
         f.write("#------ SECTION : DEP LATEST LIST --------#\n")
-        f.write("PKG_ID\tPKG_NAME\tLATEST_VERSION\tLATEST_STABLE_VERSION\tSOURCE_TYPE\tSOURCE_VALUE\tHUB_VERSION\tHUB_STATUS\n")
+        f.write("PKG_ID\tPKG_NAME\tLATEST_VERSION\tLATEST_STABLE_VERSION\tSOURCE_TYPE\tSOURCE_VALUE\tHUB_VERSION\tHUB_STATUS\tGIT_STATUS\n")
         for latest in latest_versions.values():
-            f.write(f"{latest.pkg_id}\t{latest.pkg_name}\t{latest.latest_version}\t{latest.latest_stable_version}\t{latest.source_type}\t{latest.source_value}\t{latest.hub_version}\t{latest.hub_status}\n")
+            f.write(f"{latest.pkg_id}\t{latest.pkg_name}\t{latest.latest_version}\t{latest.latest_stable_version}\t{latest.source_type}\t{latest.source_value}\t{latest.hub_version}\t{latest.hub_status}\t{latest.git_status}\n")
         f.write("\n")
 
         # Section 4: VERSION MAP LIST
@@ -2032,6 +2058,8 @@ def hydrate_tsv_cache(cache_file: str = None) -> EcosystemData:
                     deps[dep.dep_id] = dep
 
                 elif current_section == "latest" and len(parts) >= 8:
+                    # Handle backward compatibility - old cache files don't have git_status
+                    git_status = parts[8] if len(parts) >= 9 else "OK"
                     latest_data = LatestData(
                         pkg_id=int(parts[0]),
                         pkg_name=parts[1],
@@ -2040,7 +2068,8 @@ def hydrate_tsv_cache(cache_file: str = None) -> EcosystemData:
                         source_type=parts[4],
                         source_value=parts[5],
                         hub_version=parts[6],
-                        hub_status=parts[7]
+                        hub_status=parts[7],
+                        git_status=git_status
                     )
                     latest[latest_data.pkg_name] = latest_data
 
@@ -2370,8 +2399,12 @@ def generate_data_cache(dependencies, fast_mode=False):
 
     # Phase 3: Extract dependencies
     print(f"{Colors.CYAN}Phase 3: Extracting dependencies...{Colors.END}")
+    print(f"  Processing {len(cargo_files)} Cargo.toml files...")
     deps = extract_dependencies_batch(cargo_files)
+    print(f"  Extracted {len(deps)} dependencies")
+    print(f"  Collecting unique packages...")
     packages_with_sources = collect_unique_packages_with_sources(cargo_files)
+    print(f"  Collected {len(packages_with_sources)} unique packages")
     hub_using_repos = len([r for r in repos if r.hub_status in ['using', 'path', 'workspace']])
     print(f"Found {len(deps)} dependency entries, {len(packages_with_sources)} unique packages, {hub_using_repos} repos using hub")
 
@@ -2717,6 +2750,18 @@ def view_hub_dashboard(ecosystem: EcosystemData) -> None:
         latest_display = pkg_info.latest_stable_version
         if pkg_info.latest_version != pkg_info.latest_stable_version:
             latest_display += "+"
+
+        # Check git status for broken dependencies
+        git_status = pkg_info.git_status if hasattr(pkg_info, 'git_status') else "OK"
+        if git_status not in ["OK", ""]:
+            if git_status == "AUTH_REQUIRED":
+                latest_display = "⚠️  AUTH_REQUIRED"
+            elif git_status == "NOT_FOUND":
+                latest_display = "❌ NOT_FOUND"
+            elif git_status == "TIMEOUT":
+                latest_display = "⏱️  TIMEOUT"
+            elif git_status == "UNREACHABLE":
+                latest_display = "❌ UNREACHABLE"
 
         package_data = {
             'name': pkg_name,
@@ -3318,6 +3363,19 @@ def view_review(ecosystem: EcosystemData) -> None:
         latest_info = ecosystem.latest.get(pkg_name)
         latest_version = latest_info.latest_version if latest_info else "unknown"
 
+        # Check git status for broken dependencies
+        git_status = latest_info.git_status if latest_info else "OK"
+        if git_status not in ["OK", ""]:
+            # Add warning indicator for broken git deps
+            if git_status == "AUTH_REQUIRED":
+                latest_version = f"⚠️  AUTH_REQUIRED"
+            elif git_status == "NOT_FOUND":
+                latest_version = f"❌ NOT_FOUND"
+            elif git_status == "TIMEOUT":
+                latest_version = f"⏱️  TIMEOUT"
+            elif git_status == "UNREACHABLE":
+                latest_version = f"❌ UNREACHABLE"
+
         # Determine ecosystem version (most common or highest)
         versions_list = list(stats['versions'])
         if len(versions_list) == 1:
@@ -3330,12 +3388,26 @@ def view_review(ecosystem: EcosystemData) -> None:
         from packaging.version import parse as parse_version
         parsed_versions = []
         for v in stats['versions']:
+            # Skip git/path/workspace version markers
+            if v in ['git', 'path', 'workspace']:
+                continue
             try:
                 parsed_versions.append(parse_version(v))
             except:
                 continue
 
+        # For git dependencies with no parseable version, use special handling
         if not parsed_versions:
+            # Check if it's a git dependency by looking at latest_info
+            if latest_info and latest_info.source_type == "git":
+                # Show git dependency with its status
+                ecosystem_version = "git"
+                pkg_display = f"{Colors.LIGHT_GRAY}{pkg_name:<20}{Colors.END}"
+                usage_display = f"{len(stats['repos']):<4}"
+                eco_display = f"{Colors.GRAY}git dependency{Colors.END}"
+                latest_display = f"{Colors.CYAN}{latest_version:<20}{Colors.END}" if git_status == "OK" else f"{Colors.RED}{latest_version:<20}{Colors.END}"
+                breaking_status = f"{Colors.GRAY}N/A{Colors.END}"
+                print(f"{pkg_display} {usage_display} {eco_display:<14} {latest_display} {breaking_status}")
             continue
 
         sorted_versions = sorted(parsed_versions)
