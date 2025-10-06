@@ -1605,55 +1605,64 @@ def resolve_git_version(git_repo: str, git_ref: str) -> str:
                     pass
 
         # Method 2: Try git ls-remote + sparse checkout for any git repo (including private)
-        try:
-            # Test if we can access the repo
-            result = subprocess.run(
-                ['git', 'ls-remote', '--heads', git_repo],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+        # Skip HTTPS URLs to avoid credential prompts - only works with SSH
+        if not git_repo.startswith('https://'):
+            try:
+                # Test if we can access the repo
+                # Set GIT_TERMINAL_PROMPT=0 to disable credential prompts
+                git_env = {**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
 
-            if result.returncode == 0:
-                # Repo is accessible - try to get Cargo.toml via git archive
-                try:
-                    # Use git archive to get just Cargo.toml
-                    archive_result = subprocess.run(
-                        ['git', 'archive', '--remote', git_repo, git_ref, 'Cargo.toml'],
-                        capture_output=True,
-                        timeout=10
-                    )
+                result = subprocess.run(
+                    ['git', 'ls-remote', '--heads', git_repo],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    env=git_env,
+                    stdin=subprocess.DEVNULL  # Block any credential prompts
+                )
 
-                    if archive_result.returncode == 0:
-                        # Extract and parse Cargo.toml from tar
-                        import tarfile
-                        import io
-                        tar_data = io.BytesIO(archive_result.stdout)
-                        with tarfile.open(fileobj=tar_data, mode='r') as tar:
-                            cargo_toml = tar.extractfile('Cargo.toml')
-                            if cargo_toml:
-                                content = cargo_toml.read().decode('utf-8')
-                                cargo_data = load_toml(content, is_string=True)
-                                if 'package' in cargo_data and 'version' in cargo_data['package']:
-                                    return cargo_data['package']['version']
-                except Exception:
-                    pass
+                if result.returncode == 0:
+                    # Repo is accessible - try to get Cargo.toml via git archive
+                    try:
+                        # Use git archive to get just Cargo.toml
+                        archive_result = subprocess.run(
+                            ['git', 'archive', '--remote', git_repo, git_ref, 'Cargo.toml'],
+                            capture_output=True,
+                            timeout=5,
+                            env=git_env,
+                            stdin=subprocess.DEVNULL  # Block any credential prompts
+                        )
 
-                # Repo accessible but couldn't get version - return ref indicator
-                return f"GIT#{git_ref[:8] if len(git_ref) > 8 else git_ref}"
-            else:
-                # Check if it's an auth issue
-                error_msg = result.stderr.lower()
-                if 'permission denied' in error_msg or 'authentication failed' in error_msg:
-                    return "AUTH_REQUIRED"
-                elif 'not found' in error_msg or 'could not read' in error_msg:
-                    return "NOT_FOUND"
+                        if archive_result.returncode == 0:
+                            # Extract and parse Cargo.toml from tar
+                            import tarfile
+                            import io
+                            tar_data = io.BytesIO(archive_result.stdout)
+                            with tarfile.open(fileobj=tar_data, mode='r') as tar:
+                                cargo_toml = tar.extractfile('Cargo.toml')
+                                if cargo_toml:
+                                    content = cargo_toml.read().decode('utf-8')
+                                    cargo_data = load_toml(content, is_string=True)
+                                    if 'package' in cargo_data and 'version' in cargo_data['package']:
+                                        return cargo_data['package']['version']
+                    except Exception:
+                        pass
+
+                    # Repo accessible but couldn't get version - return ref indicator
+                    return f"GIT#{git_ref[:8] if len(git_ref) > 8 else git_ref}"
                 else:
-                    return "GIT_ERROR"
-        except subprocess.TimeoutExpired:
-            return "TIMEOUT"
-        except Exception:
-            pass
+                    # Check if it's an auth issue
+                    error_msg = result.stderr.lower()
+                    if 'permission denied' in error_msg or 'authentication failed' in error_msg:
+                        return "AUTH_REQUIRED"
+                    elif 'not found' in error_msg or 'could not read' in error_msg:
+                        return "NOT_FOUND"
+                    else:
+                        return "GIT_ERROR"
+            except subprocess.TimeoutExpired:
+                return "TIMEOUT"
+            except Exception:
+                pass
 
         # Ultimate fallback
         return "0.0.0"
@@ -4965,6 +4974,166 @@ def learn_all_opportunities(ecosystem: EcosystemData) -> int:
 
     return learned_count
 
+def scan_git_dependencies():
+    """Scan all Cargo.toml files for git dependencies and test accessibility"""
+    import subprocess
+    from pathlib import Path
+
+    print(f"{Colors.CYAN}{Colors.BOLD}🔍 Git Dependency Scanner{Colors.END}")
+    print(f"{Colors.GRAY}Scanning for git dependencies and testing accessibility...{Colors.END}")
+    print()
+
+    if not RUST_REPO_ROOT:
+        print(f"{Colors.RED}❌ RUST_REPO_ROOT not set{Colors.END}")
+        return
+
+    # Find all Cargo.toml files
+    cargo_files = list(Path(RUST_REPO_ROOT).rglob('Cargo.toml'))
+    print(f"Found {len(cargo_files)} Cargo.toml files")
+    print()
+
+    git_deps = {}  # {git_url: [(cargo_file, dep_name, ref)]}
+    broken_deps = []
+    https_deps = []
+    ssh_deps = []
+
+    # Scan all Cargo.toml files for git dependencies
+    for cargo_path in cargo_files:
+        try:
+            cargo_data = load_toml(cargo_path)
+
+            for section in ['dependencies', 'dev-dependencies']:
+                if section in cargo_data:
+                    for dep_name, dep_info in cargo_data[section].items():
+                        if isinstance(dep_info, dict) and 'git' in dep_info:
+                            git_url = dep_info['git']
+                            git_ref = dep_info.get('rev', dep_info.get('branch', dep_info.get('tag', 'main')))
+
+                            if git_url not in git_deps:
+                                git_deps[git_url] = []
+                            git_deps[git_url].append((cargo_path, dep_name, git_ref))
+
+                            # Categorize by URL type
+                            if git_url.startswith('https://'):
+                                if git_url not in [d[0] for d in https_deps]:
+                                    https_deps.append((git_url, git_ref))
+                            elif git_url.startswith('ssh://') or git_url.startswith('git@'):
+                                if git_url not in [d[0] for d in ssh_deps]:
+                                    ssh_deps.append((git_url, git_ref))
+        except Exception as e:
+            print(f"{Colors.YELLOW}⚠️  Could not parse {cargo_path}: {e}{Colors.END}")
+
+    print(f"{Colors.CYAN}📊 Git Dependency Summary:{Colors.END}")
+    print(f"  Total unique git repos: {len(git_deps)}")
+    print(f"  HTTPS URLs: {len(https_deps)}")
+    print(f"  SSH URLs: {len(ssh_deps)}")
+    print()
+
+    # Test each unique git URL
+    print(f"{Colors.CYAN}🧪 Testing accessibility:{Colors.END}")
+    print()
+
+    accessible = []
+    needs_auth = []
+    not_found = []
+    timeouts = []
+
+    for git_url in git_deps.keys():
+        print(f"Testing: {git_url}... ", end='', flush=True)
+
+        try:
+            # Set environment to block prompts
+            git_env = {**os.environ, 'GIT_TERMINAL_PROMPT': '0'}
+
+            result = subprocess.run(
+                ['git', 'ls-remote', '--heads', git_url],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                env=git_env,
+                stdin=subprocess.DEVNULL
+            )
+
+            if result.returncode == 0:
+                print(f"{Colors.GREEN}✓ accessible{Colors.END}")
+                accessible.append(git_url)
+            else:
+                error_msg = result.stderr.lower()
+                if 'permission denied' in error_msg or 'authentication failed' in error_msg or 'could not read username' in error_msg:
+                    print(f"{Colors.YELLOW}⚠ AUTH_REQUIRED{Colors.END}")
+                    needs_auth.append((git_url, result.stderr.strip()[:100]))
+                elif 'not found' in error_msg or 'could not read' in error_msg or 'does not appear' in error_msg:
+                    print(f"{Colors.RED}✗ NOT_FOUND{Colors.END}")
+                    not_found.append((git_url, result.stderr.strip()[:100]))
+                else:
+                    print(f"{Colors.RED}✗ ERROR{Colors.END}")
+                    not_found.append((git_url, result.stderr.strip()[:100]))
+        except subprocess.TimeoutExpired:
+            print(f"{Colors.ORANGE}⏱ TIMEOUT{Colors.END}")
+            timeouts.append(git_url)
+        except Exception as e:
+            print(f"{Colors.RED}✗ {str(e)[:50]}{Colors.END}")
+
+    print()
+    print(f"{Colors.CYAN}{Colors.BOLD}📋 Results Summary:{Colors.END}")
+    print()
+
+    if accessible:
+        print(f"{Colors.GREEN}✓ Accessible ({len(accessible)}):{Colors.END}")
+        for url in accessible:
+            print(f"  {url}")
+        print()
+
+    if needs_auth:
+        print(f"{Colors.YELLOW}⚠ Requires Authentication ({len(needs_auth)}):{Colors.END}")
+        for url, _ in needs_auth:
+            uses = git_deps[url]
+            print(f"  {url}")
+            print(f"    Used in {len(uses)} files:")
+            for cargo_path, dep_name, ref in uses[:3]:  # Show first 3
+                rel_path = str(cargo_path).replace(str(RUST_REPO_ROOT) + '/', '')
+                print(f"      - {rel_path} ({dep_name})")
+            if len(uses) > 3:
+                print(f"      ... and {len(uses) - 3} more")
+        print()
+        print(f"{Colors.CYAN}💡 Fix: Run 'blade fix-git' to configure cargo for SSH authentication{Colors.END}")
+        print()
+
+    if not_found:
+        print(f"{Colors.RED}✗ Not Found / Moved ({len(not_found)}):{Colors.END}")
+        for url, error in not_found:
+            uses = git_deps[url]
+            print(f"  {url}")
+            if 'repository not found' in error.lower() or 'does not appear' in error.lower():
+                print(f"    {Colors.GRAY}└─ Repo may have been moved or deleted{Colors.END}")
+            print(f"    Used in {len(uses)} files:")
+            for cargo_path, dep_name, ref in uses[:3]:
+                rel_path = str(cargo_path).replace(str(RUST_REPO_ROOT) + '/', '')
+                print(f"      - {rel_path} ({dep_name})")
+            if len(uses) > 3:
+                print(f"      ... and {len(uses) - 3} more")
+        print()
+        print(f"{Colors.CYAN}💡 Fix: Update Cargo.toml files with correct git URLs (e.g., migrated to GitLab){Colors.END}")
+        print()
+
+    if timeouts:
+        print(f"{Colors.ORANGE}⏱ Timed Out ({len(timeouts)}):{Colors.END}")
+        for url in timeouts:
+            uses = git_deps[url]
+            print(f"  {url}")
+            print(f"    Used in {len(uses)} file(s)")
+        print()
+
+    # Provide actionable summary
+    print(f"{Colors.CYAN}{Colors.BOLD}🔧 Action Items:{Colors.END}")
+    if not_found:
+        print(f"1. Update {len(not_found)} broken git URL(s) in Cargo.toml files")
+        print(f"   (Repos may have moved from GitHub to GitLab)")
+    if needs_auth:
+        print(f"2. Run 'blade fix-git' to enable SSH authentication for private repos")
+    if not not_found and not needs_auth:
+        print(f"{Colors.GREEN}✓ All git dependencies are accessible!{Colors.END}")
+
 def fix_git_config(args):
     """Fix cargo config for private git dependencies"""
     import subprocess
@@ -5116,7 +5285,7 @@ def main():
     parser = argparse.ArgumentParser(description="Rust dependency analyzer with enhanced commands")
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
-                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git'],
+                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git'],
                        help='Command to run')
     parser.add_argument('package', nargs='?', help='Package/repo name for pkg/latest/search/graph/learn/notes commands or "all" for learn all')
     parser.add_argument('--ssh-profile', default=None, help='SSH profile/host for git operations (e.g., "qodeninja" for git@qodeninja)')
@@ -5237,6 +5406,8 @@ def main():
             analyze_package_usage(dependencies)
         elif args.command == 'fix-git':
             fix_git_config(args)
+        elif args.command == 'scan-git':
+            scan_git_dependencies()
 
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}⚠️  Operation interrupted by user{Colors.END}")

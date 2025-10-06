@@ -170,19 +170,35 @@ blade superclean
 
 ### Private Git Dependencies
 ```bash
-# Fix cargo config for private git repos (GitLab, GitHub, etc.)
+# Scan for broken/inaccessible git dependencies
+blade scan-git
+
+# Fix cargo config for private git repos
 blade fix-git [--dry-run]
 ```
 
-**What it does:**
+**blade scan-git** - Identifies problems:
+- Tests all git dependencies for accessibility
+- Reports which repos need authentication
+- Shows which Cargo.toml files need updating
+- Detects repos that have moved (GitHub → GitLab)
+
+**blade fix-git** - Fixes configuration:
 - Adds `git-fetch-with-cli = true` to `~/.cargo/config.toml` (non-destructive)
 - Checks SSH config for GitLab/GitHub profiles
-- Provides setup instructions for private repos
+- Provides setup instructions
 
 **For private repos, ensure:**
 1. `~/.cargo/config.toml` has `[net]` section with `git-fetch-with-cli = true`
 2. `~/.ssh/config` has host entries for gitlab.com/github.com
 3. Cargo.toml uses SSH URLs: `rsb = { git = "ssh://git@gitlab.com/oodx/rsb.git", branch = "main" }`
+
+**Fix workflow:**
+```bash
+blade scan-git          # Find broken deps
+blade fix-git          # Configure cargo
+# Then manually update Cargo.toml files to use SSH URLs
+```
 
 ## Command Flags
 
