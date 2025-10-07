@@ -1,0 +1,50 @@
+[project]
+name = "blade"
+version = "2.0.0"
+description = "Advanced Dependency Management and Repository Analysis Tool for Rust Ecosystems"
+authors = [
+    {name = "snekfx", email = "noreply@snekfx.dev"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+keywords = ["rust", "cargo", "dependencies", "analysis", "management"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core dependencies
+    "packaging>=20.0",  # For version parsing
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+blade = "blade:main"
+
+[project.urls]
+Homepage = "https://github.com/snekfx/blade-py"
+Repository = "https://github.com/snekfx/blade-py"
+Issues = "https://github.com/snekfx/blade-py/issues"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["blade"]

@@ -16,8 +16,6 @@ Flags:
   --force          Bypass git safety checks (main branch requirement and clean working directory)
 """
 
-__version__ = "2.0.0"
-
 import os
 import sys
 try:
@@ -50,6 +48,19 @@ import subprocess
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
+
+def get_version():
+    """Read version from pyproject.toml"""
+    try:
+        pyproject_path = Path(__file__).parent / "pyproject.toml"
+        if pyproject_path.exists():
+            pyproject_data = load_toml(pyproject_path)
+            return pyproject_data.get('project', {}).get('version', 'unknown')
+    except Exception:
+        pass
+    return 'unknown'
+
+__version__ = get_version()
 from typing import List, Dict, Set, Optional, Tuple
 import shutil
 import tempfile
@@ -5472,7 +5483,7 @@ EXAMPLES:
   blade scan-git fix-urls        # Fix HTTPS→SSH git URLs
         ''')
 
-    parser.add_argument('--version', action='version', version='blade v2.0.0')
+    parser.add_argument('--version', action='version', version=f'blade v{__version__}')
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
                                'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git'],
