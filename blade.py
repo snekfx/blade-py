@@ -5413,19 +5413,78 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)  # Termination
     signal.signal(signal.SIGTSTP, signal_handler)  # Ctrl+Z
 
-    parser = argparse.ArgumentParser(description="Rust dependency analyzer with enhanced commands")
+    parser = argparse.ArgumentParser(
+        prog='blade',
+        description='🗡️  BLADE - Advanced Dependency Management for Rust Ecosystems',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+COMMAND CATEGORIES:
+
+  📊 Analysis Commands:
+    conflicts         Show version conflicts across ecosystem (default)
+    review            Detailed dependency review with latest versions
+    hub               Hub-centric package status dashboard
+    usage, u, q       Package usage analysis across ecosystem
+    stats             Ecosystem statistics and metrics
+    outdated          Show all outdated packages
+
+  🔍 Query Commands:
+    repos             List all repositories
+    deps <repo>       Show dependencies for a specific repository
+    pkg <package>     Package-specific analysis
+    search <pattern>  Search for packages by pattern
+    graph <package>   Show dependency graph for package
+
+  🔧 Update Commands:
+    update <repo>     Update specific repository dependencies
+    eco               Update entire ecosystem
+    learn <package>   Learn package (add to hub with latest version)
+
+  🛠️  Maintenance Commands:
+    data              Generate/refresh dependency cache
+    export            Export raw analysis data to TSV
+    superclean        Clean all target directories
+    ls                List discovered repositories
+    notes <repo>      View/manage repository notes
+
+  🔐 Git Dependency Commands:
+    scan-git          Scan and test git dependency accessibility
+    fix-git           Configure cargo for SSH authentication
+
+  ℹ️  Info Commands:
+    --version         Show version information
+    --help            Show this help message
+
+FLAGS:
+  --fast-mode         Disable progress bars for scripts
+  --dry-run           Preview changes without applying
+  --force-commit      Auto-commit with 'auto:hub bump' message
+  --force             Bypass safety checks (use with caution)
+  --live              Force live discovery (ignore cache)
+  --create            Create hub metadata section (for notes)
+  --ssh-profile       SSH profile for git operations
+
+EXAMPLES:
+  blade                          # Show conflicts (default)
+  blade review --fast-mode       # Quick dependency review
+  blade update myapp --dry-run   # Preview updates
+  blade learn tokio              # Add tokio to hub
+  blade scan-git fix-urls        # Fix HTTPS→SSH git URLs
+        ''')
+
+    parser.add_argument('--version', action='version', version='blade v2.0.0')
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
                                'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git'],
-                       help='Command to run')
-    parser.add_argument('package', nargs='?', help='Package/repo name for pkg/latest/search/graph/learn/notes commands or "all" for learn all')
-    parser.add_argument('--ssh-profile', default=None, help='SSH profile/host for git operations (e.g., "qodeninja" for git@qodeninja)')
-    parser.add_argument('--live', action='store_true', help='Force live discovery instead of using cache')
+                       help='Command to run (see categories below)')
+    parser.add_argument('package', nargs='?', help='Package/repo name for specific commands')
+    parser.add_argument('--ssh-profile', default=None, help='SSH profile/host for git operations')
+    parser.add_argument('--live', action='store_true', help='Force live discovery instead of cache')
     parser.add_argument('--fast-mode', action='store_true', help='Disable progress bars and interactive elements')
     parser.add_argument('--dry-run', action='store_true', help='Show what would be updated without making changes')
-    parser.add_argument('--force-commit', action='store_true', help='Automatically commit changes with auto:hub bump message')
-    parser.add_argument('--force', action='store_true', help='Force operation even if not on main branch or with uncommitted changes')
-    parser.add_argument('--create', action='store_true', help='Create hub metadata section if it doesn\'t exist (for notes command)')
+    parser.add_argument('--force-commit', action='store_true', help='Automatically commit changes')
+    parser.add_argument('--force', action='store_true', help='Force operation (bypass safety checks)')
+    parser.add_argument('--create', action='store_true', help='Create hub metadata section if missing')
 
     args = parser.parse_args()
 
