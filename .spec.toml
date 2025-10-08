@@ -1,0 +1,20 @@
+# Project specification (.spec.toml)
+# Used by feat, test-py, and other RSB tooling
+# Auto-generated on /home/xnull/repos/code/python/snekfx/blade-py
+
+project_name = "blade-py"
+features_root = "src"
+docs_root = "docs/feats"
+doc_pattern = "FEATURES_{FEATURE}.md"
+languages = ["python"]
+auto_discover = false
+
+exclude = [
+    "**/tests/**",
+    "**/target/**",
+    "**/__pycache__/**",
+]
+
+# Explicit feature mappings (optional, overrides auto-discovery)
+[features]
+# example = ["src/example"]
