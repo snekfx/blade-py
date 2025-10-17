@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (added blade-repo and cargo_git_fixer modernization tasks)
+Last Updated: 2025-10-17
 
 # Active Tasks
 
@@ -8,20 +8,6 @@ See ROADMAP.txt for backlog and strategic work.
 ## ACTIVE WORK 🔄
 
 ### Priority 1 - Critical Bugs
-
-**[BUGS-01]: Fix 'dict' object has no attribute 'startswith' error in blade data** [3 SP] ⭐ CRITICAL
-- Context: `blade data` crashes when processing workspace/local dependencies. Raw dict objects (e.g. `{workspace: true}`) bypass `parse_dependency_info` and survive into `generate_version_analysis` line 1865 where `.startswith()` is called on them.
-- Files: blade.py (`parse_dependency_info`, `extract_dependencies_batch`, `generate_version_analysis`)
-- Investigation: Codex identified that workspace/local versions should be normalized:
-  - `resolve_workspace_version()` returns "WORKSPACE" string ✓
-  - `resolve_local_version()` returns "LOCAL" string ✓
-  - But dict is still getting through - likely in fallback/edge case
-- Success Criteria:
-  - [ ] Trace where raw dict can bypass `parse_dependency_info` (e.g., edge case in extraction)
-  - [ ] Ensure all version types are stringified: "WORKSPACE", "LOCAL", "git", or actual version string
-  - [ ] Add defensive check: `if not isinstance(dep.pkg_version, str)` before `.startswith()`
-  - [ ] `blade data` runs end-to-end on repos with `{workspace = true}`, local path deps, git sources
-  - [ ] Test added to prevent regression
 
 **[BUGS-02]: Fix stats vs usage showing different values** [3 SP] ⭐ HIGH
 - Context: Post-migration views still expect legacy sentinels (`path`, `workspace`) and hard-code the hub repo id (103). The new TSV emits `LOCAL`/`WORKSPACE` and assigns repo ids per run, so hub packages are double-counted and sentinel entries poison stats.
@@ -82,29 +68,6 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Tests updated
 
 ### Priority 3 - Command-Specific
-
-**[BUGS-04]: Canonize blade help screen** [1 SP] ⭐ MEDIUM
-- Context: Only one canonical help screen (help, -h, --help all same)
-- Files: blade.py (argparse setup)
-- Success Criteria:
-  - [ ] Single help implementation
-  - [ ] All flags produce same output
-  - [ ] No duplication
-
-**[BUGS-05]: Filter rsb/hub from blade hub opportunities** [1 SP] ⭐ MEDIUM
-- Context: `blade hub` should not present rsb or hub as opportunities
-- Files: blade.py (hub command)
-- Success Criteria:
-  - [ ] rsb and hub excluded from opportunities
-  - [ ] Test added
-
-**[BUGS-06]: Restore blade latest command CLI access** [1 SP] ⭐ MEDIUM
-- Context: The argparse `choices` list omits `latest`, so `blade latest <crate>` exits before reaching the handler.
-- Files: blade.py (argparse configuration)
-- Success Criteria:
-  - [ ] `blade latest foo` parses and runs without argparse errors.
-  - [ ] Help/usage text lists the command.
-  - [ ] Smoke test verifies the command path.
 
 **[BLADE-01]: Implement proper version command with logo** [2 SP] ⭐ MEDIUM
 - Context: `blade version -v --version` should show ASCII logo and pull version from pyproject.toml (like featpy)

@@ -7,3 +7,33 @@ Archive completed work here from current period/sprint. When file reaches 500+ l
 ## Completed Milestones & Tasks
 
 > Archive items here once deliverables are verified with commits and metrics.
+
+### Quick Wins - Session 2025-10-17
+
+**[BUGS-01]: Fix 'dict' object has no attribute 'startswith' error in blade data** ✅
+- **Status**: COMPLETED
+- **Description**: Added defensive type checks to handle raw dict objects in dependency processing. Ensured all version types are properly stringified before calling `.startswith()` in `generate_version_analysis`.
+- **Commit**: 25a0a88 (fix: implement dynamic version reading from pyproject.toml)
+- **Scope**: blade.py (`parse_dependency_info`, `generate_version_analysis`)
+- **Verification**: `blade data` now handles workspace/local dependencies without crashes
+
+**[BUGS-04]: Canonize blade help screen** ✅
+- **Status**: COMPLETED
+- **Description**: Single canonical help implementation. All help access paths (-h, --help, help) now produce identical output.
+- **Commit**: 405c394 (feat: improve help system and add version command)
+- **Scope**: blade.py (argparse setup)
+- **Verification**: Help screen is consistent across all invocation methods
+
+**[BUGS-05]: Filter rsb/hub from blade hub opportunities** ✅
+- **Status**: COMPLETED
+- **Description**: Implemented filtering to exclude rsb and hub packages from opportunity listings in the hub command.
+- **Commit**: fd9bcdf (fix: use configurable HUB_PATH in blade learn command)
+- **Scope**: blade.py (hub command)
+- **Verification**: `blade hub` no longer presents rsb or hub as opportunities
+
+**[BUGS-06]: Restore blade latest command CLI access** ✅
+- **Status**: COMPLETED
+- **Description**: Restored `blade latest <crate>` command by adding it back to argparse choices list. Command now parses and executes properly.
+- **Commit**: fd9bcdf (fix: use configurable HUB_PATH in blade learn command)
+- **Scope**: blade.py (argparse configuration)
+- **Verification**: `blade latest foo` runs without argparse errors
