@@ -3,41 +3,48 @@ Last Updated: 2025-10-17
 # Quick Reference - 30-Second Context
 
 ## Current Focus
-BLADE core functionality stabilization (Milestone M1).
+**Fix critical bugs in blade data/stats/version handling** (Milestone M1).
 
 ## Project Status
-- ✅ Project structure in place with Meta Process v3
-- ✅ README and core docs updated
-- 🔄 Core Python CLI functional
-- ⬆️ Feature expansion and multi-language support planned
+- ✅ Meta Process v3 implemented with clear task tracking
+- 🔴 CRITICAL: `blade data` crashes with dict error
+- 🔴 HIGH: Version conflicts incorrectly marked (2.0 vs 2.0.0)
+- 🟡 HIGH: stats vs usage show inconsistent values
+- 🟢 CLI functional for other operations
 
-## Critical Context
-- **No current blockers**
-- **Stack**: Python 3.8+, Git, Cargo (for Rust analysis)
-- **Main Entry**: `blade.py` CLI tool
-- **Testing**: pytest framework
+## Critical Blockers
+1. **BUGS-01** CRITICAL: blade data crashes (dict error)
+2. **BUGS-02** HIGH: stats/usage inconsistency
+3. **BUGS-03** HIGH: Version canonization missing
 
-## Active Tasks
-(See TASKS.txt - currently no active tasks queued)
+## Active Priority Tasks
+See TASKS.txt for complete list. Current focus:
+- BUGS-01: Fix dict error in blade data [2 SP] ⭐ CRITICAL
+- BUGS-02: stats vs usage mismatch [2 SP] ⭐ HIGH
+- BUGS-03: Version canonization [3 SP] ⭐ HIGH
+
+## Stack & Setup
+- **Language**: Python 3.8+
+- **Main Entry**: blade.py
+- **Testing**: pytest
+- **Format/Lint**: black, ruff
 
 ## Key Commands
 ```bash
-python blade.py --help          # CLI help
-python blade.py --version       # Version info
-python blade.py data            # Generate cache
+python blade.py data            # Currently FAILS
+python blade.py stats           # Check values
+python blade.py usage           # Compare with stats
+python blade.py --help          # Help screen
 pytest tests/                   # Run tests
-black src/ tests/               # Format code
-ruff check --fix src/ tests/    # Lint code
 ```
 
-## Immediate Next Steps
-1. Review ROADMAP.txt for strategic priorities
-2. Create first set of priority tasks from M1 milestone
-3. Run full test suite to establish baseline
+## Next Steps
+1. Fix BUGS-01 (dict error in blade data) - CRITICAL
+2. Run blade data to verify
+3. Move to BUGS-02 & BUGS-03
+4. See ROADMAP.txt for strategic backlog
 
-## Key Documentation
-- `START.txt` — entry point (read first!)
-- `PROCESS.txt` — development workflow
-- `ROADMAP.txt` — strategic milestones
-- `docs/dev/` — architecture and references
-- `README.md` — project overview
+## Key Files
+- `TASKS.txt` — active work (10 real bugs/features)
+- `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
+- `PROCESS.txt` — workflow details

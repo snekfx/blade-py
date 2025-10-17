@@ -3,8 +3,98 @@ Last Updated: 2025-10-17
 # Active Tasks
 
 Keep this list lean. Only in-progress or ready-to-start items belong here.
+See ROADMAP.txt for backlog and strategic work.
 
-## Task Template
+## ACTIVE WORK 🔄
+
+### Priority 1 - Critical Bugs
+
+**[BUGS-01]: Fix 'dict' object has no attribute 'startswith' error in blade data** [2 SP] ⭐ CRITICAL
+- Context: `blade data` command crashes immediately
+- Files: blade.py (data command handler)
+- Success Criteria:
+  - [ ] Error identified and root cause fixed
+  - [ ] blade data runs without error
+  - [ ] Test added to prevent regression
+
+**[BUGS-02]: Fix stats vs usage showing different values** [2 SP] ⭐ HIGH
+- Context: `blade stats` and `blade usage` report inconsistent data for same packages
+- Files: blade.py (stats/usage commands), src/
+- Success Criteria:
+  - [ ] Root cause identified
+  - [ ] Both commands report same values
+  - [ ] Test added for consistency
+
+**[BUGS-03]: Version canonization (2.0 == 2.0.0 should not conflict)** [3 SP] ⭐ HIGH
+- Context: Different version formats treated as conflicts when they're equivalent
+- Files: src/version_utils.py or similar
+- Requirements:
+  - Canonize version formats
+  - Exclude pre-releases (alpha, rc) from "latest"
+  - Parse version metadata (e.g., v2.0.0-deprecated)
+- Success Criteria:
+  - [ ] 2.0 and 2.0.0 recognized as same
+  - [ ] Pre-releases not marked as latest
+  - [ ] Version metadata parsed correctly
+  - [ ] Tests covering version scenarios
+
+### Priority 2 - Feature/UX Improvements
+
+**[QOL-01]: Optimize tree scanning with md5 caching** [3 SP] ⭐ MEDIUM
+- Context: If tree and md5 available, compare before walking to use cached repo data
+- Files: blade.py (data command), src/scanner.py
+- Success Criteria:
+  - [ ] md5 comparison logic implemented
+  - [ ] Cached data used when md5 matches
+  - [ ] Performance improvement measured
+  - [ ] Test added
+
+**[QOL-02]: Identify internal libraries and org/group** [3 SP] ⭐ MEDIUM
+- Context: `blade data` should extract internal lib info for downstream commands
+- Files: src/scanner.py, blade.py
+- Success Criteria:
+  - [ ] Internal libraries identified
+  - [ ] Org/group metadata captured
+  - [ ] Available in other commands
+  - [ ] Documentation updated
+
+**[QOL-03]: Clarify and canonize user commands** [2 SP] ⭐ MEDIUM
+- Context: Some commands seem redundant or inaccurate
+- Files: blade.py (command definitions), docs/
+- Success Criteria:
+  - [ ] Command overlap analysis complete
+  - [ ] Redundancy removed or clarified
+  - [ ] Help text updated
+  - [ ] Command matrix documented
+
+**[QOL-04]: Improve blade outdated filtering** [2 SP] ⭐ MEDIUM
+- Context: `blade outdated` should only list outdated packages, with `--more` for details
+- Files: blade.py (outdated command)
+- Success Criteria:
+  - [ ] Default output condensed
+  - [ ] --more flag shows detailed view
+  - [ ] Tests updated
+
+### Priority 3 - Command-Specific
+
+**[BUGS-04]: Canonize blade help screen** [1 SP] ⭐ MEDIUM
+- Context: Only one canonical help screen (help, -h, --help all same)
+- Files: blade.py (argparse setup)
+- Success Criteria:
+  - [ ] Single help implementation
+  - [ ] All flags produce same output
+  - [ ] No duplication
+
+**[BUGS-05]: Filter rsb/hub from blade hub opportunities** [1 SP] ⭐ MEDIUM
+- Context: `blade hub` should not present rsb or hub as opportunities
+- Files: blade.py (hub command)
+- Success Criteria:
+  - [ ] rsb and hub excluded from opportunities
+  - [ ] Test added
+
+---
+
+## Task Template (for reference)
 
 **[EPIC-NN]: Task Title** [X SP] ⭐ PRIORITY
 
@@ -14,19 +104,13 @@ Keep this list lean. Only in-progress or ready-to-start items belong here.
   - [ ] Implementation complete
   - [ ] Tests added and passing
   - [ ] Documentation updated
-  - [ ] Ready for review
-
-## ACTIVE WORK 🔄
-
-(No active tasks currently - see ROADMAP.txt for backlog)
 
 ## Epic Naming Convention
 
-- **DOCS-NN**: Documentation work
 - **BUGS-NN**: Bug fixes and corrections
-- **UAT-NN**: User acceptance testing
 - **QOL-NN**: Quality of life improvements
+- **DOCS-NN**: Documentation work
+- **UAT-NN**: User acceptance testing
 - **REF-NN**: Refactoring and code cleanup
 - **HUB-NN**: Hub integration work
-- **BLADE-NN**: BLADE-specific work
-- **M0**: Setup/skeleton/foundational tasks
+- **BLADE-NN**: Strategic BLADE features (see ROADMAP.txt)
