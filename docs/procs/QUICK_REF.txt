@@ -45,6 +45,6 @@ pytest tests/                   # Run tests
 4. See ROADMAP.txt for strategic backlog
 
 ## Key Files
-- `TASKS.txt` — active work (14 real bugs/features + refactors, 27 SP total)
+- `TASKS.txt` — active work (13 real bugs/features + refactors, 28 SP total)
 - `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
 - `PROCESS.txt` — workflow details

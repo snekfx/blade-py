@@ -107,20 +107,20 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Help screen includes logo
   - [ ] Test added
 
-**[REF-01]: Update blade-repo.py for modern Python tooling** [3 SP] ⭐ HIGH
-- Context: blade-repo tracks legacy shell scripts; test.sh is deprecated (replaced by testpy)
+**[REF-01]: Refactor blade-repo.py to use generic scripts section** [2 SP] ⭐ HIGH
+- Context: blade-repo special-cases test.sh, build.sh, deploy.sh as "key_scripts"; should be generic
 - Files: blade-repo.py
 - Requirements:
-  - Remove test.sh from key_scripts (LEGACY - use testpy now)
-  - Add testpy detection as primary testing indicator
-  - Track pyproject.toml, setup.py, pyproject.toml presence
-  - Identify Python package structure (src/, module/, etc.)
-  - Flag build.sh and deploy.sh as "transitional" (may become legacy)
+  - Remove special "key_scripts" tracking (test.sh, build.sh, deploy.sh)
+  - Move all scripts to generic "scripts_found" section
+  - If test.sh exists, it shows up in scripts (no special meaning)
+  - Detect primary language and package structure instead
+  - Track pyproject.toml, setup.py presence for Python projects
 - Success Criteria:
-  - [ ] test.sh no longer tracked (mark as legacy)
-  - [ ] testpy/pytest detection added
+  - [ ] key_scripts dict removed
+  - [ ] All scripts now listed generically
+  - [ ] test.sh/build.sh/deploy.sh treated like any other script
   - [ ] Python project detection improved
-  - [ ] Repo metadata includes modern tooling info
   - [ ] Tests updated
 
 **[REF-02]: Integrate blade-repo into blade commands** [3 SP] ⭐ MEDIUM
