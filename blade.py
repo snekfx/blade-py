@@ -1295,6 +1295,10 @@ class RepoData:
     cargo_version: str
     hub_usage: str  # "1.0.0" or "path" or "NONE"
     hub_status: str  # "using", "path", "none"
+    is_internal: str = "false"  # "true"/"false" - whether it's internal vs external
+    org: str = ""  # Organization/owner from path or metadata
+    group: str = ""  # Group/category from path structure
+    library_type: str = "project"  # "binary", "library", "workspace", "project"
 
 @dataclass
 class DepData:
@@ -1443,6 +1447,102 @@ def should_use_cached_data(cargo_files: List[Path]) -> bool:
     return True
 
 
+def detect_internal_library(cargo_data: Dict) -> bool:
+    """Detect if a library is internal (not published to crates.io).
+
+    Indicators of internal libraries:
+    - publish = false in Cargo.toml
+    - License = "None (Private)" or similar
+    - Private git repository URLs
+    - Path dependencies (workspace members)
+    """
+    package_info = cargo_data.get('package', {})
+
+    # Check publish flag
+    if 'publish' in package_info:
+        publish = package_info['publish']
+        if isinstance(publish, bool):
+            return not publish
+        if isinstance(publish, list) and len(publish) == 0:
+            return True  # publish = [] means unpublished
+
+    # Check license for "Private" marker
+    license_val = str(package_info.get('license', '')).lower()
+    if 'private' in license_val or 'none' in license_val:
+        return True
+
+    # Check repository for private git servers
+    repo_val = package_info.get('repository', '')
+    # Repository can be string or dict, handle both
+    repo_url = str(repo_val).lower() if repo_val else ""
+    if any(marker in repo_url for marker in ['gitlab', 'ssh://', 'internal', 'private']):
+        return True
+
+    return False
+
+
+def extract_org_group(rel_path: str) -> Tuple[str, str]:
+    """Extract organization and group from repository path.
+
+    Example paths:
+    - prods/meteordb/xstream/Cargo.toml → org="meteordb", group="xstream"
+    - code/rust/prods/meteordb/turbine/Cargo.toml → org="meteordb", group="turbine"
+    - code/rust/howto/01-pty/cage/Cargo.toml → org="01-pty", group="cage"
+    - code/python/snekfx/blade-py/Cargo.toml → org="snekfx", group="blade-py"
+
+    Returns (org, group) tuple. Group is the project directory name.
+    """
+    # Split path into components and remove Cargo.toml filename
+    parts = rel_path.split('/')
+
+    # Remove 'Cargo.toml' if it's the last part
+    if parts[-1] == 'Cargo.toml':
+        parts = parts[:-1]
+
+    # Now extract org and group from remaining parts
+    if len(parts) >= 3:
+        # Pattern: .../category/org/project
+        # Example: prods/meteordb/xstream → org="meteordb", group="xstream"
+        group = parts[-1]  # Last part is project/group
+        org = parts[-2]    # Second-to-last is org
+        return org, group
+    elif len(parts) == 2:
+        # Pattern: .../org/project
+        return parts[0], parts[1]
+    elif len(parts) == 1:
+        return "", parts[0]
+    else:
+        return "", ""
+
+
+def detect_library_type(cargo_data: Dict) -> str:
+    """Detect library type: binary, library, workspace, or project.
+
+    Returns one of: "binary", "library", "workspace", "project"
+    """
+    package_info = cargo_data.get('package', {})
+
+    # Check if it's a workspace
+    if 'workspace' in cargo_data:
+        return 'workspace'
+
+    # Check lib section
+    if 'lib' in cargo_data:
+        return 'library'
+
+    # Check bin sections - if only one binary with default name, might be application
+    bins = cargo_data.get('bin', [])
+    if bins:
+        # Multiple binaries or custom names = application
+        if len(bins) > 1:
+            return 'binary'
+        # Single binary with main.rs = typical binary application
+        return 'binary'
+
+    # Default based on what's most common
+    return 'project'
+
+
 def get_repo_info(cargo_path: Path) -> Optional[Dict]:
     """Get repository information from Cargo.toml file"""
     try:
@@ -1550,6 +1650,21 @@ def extract_repo_metadata_batch(cargo_files: List[Path], hub_info: Optional[HubI
         # Detect hub usage
         hub_usage, hub_status = detect_hub_usage(cargo_path, hub_info)
 
+        # Load cargo data for internal/org/group detection
+        try:
+            cargo_data = load_toml(cargo_path)
+        except:
+            cargo_data = {}
+
+        # Detect if internal library
+        is_internal = detect_internal_library(cargo_data)
+
+        # Extract org and group from path
+        org, group = extract_org_group(repo_info['rel_path'])
+
+        # Detect library type
+        library_type = detect_library_type(cargo_data)
+
         repos.append(RepoData(
             repo_id=repo_id,
             repo_name=repo_info['repo_name'],
@@ -1558,7 +1673,11 @@ def extract_repo_metadata_batch(cargo_files: List[Path], hub_info: Optional[HubI
             last_update=repo_info['last_update'],
             cargo_version=repo_info['version'],
             hub_usage=hub_usage,
-            hub_status=hub_status
+            hub_status=hub_status,
+            is_internal="true" if is_internal else "false",
+            org=org,
+            group=group,
+            library_type=library_type
         ))
         repo_id += 1
 
@@ -2057,9 +2176,9 @@ def write_tsv_cache(repos: List[RepoData], deps: List[DepData], latest_versions:
     with open(output_file, 'a') as f:
         # Section 1: REPO LIST
         f.write("#------ SECTION : REPO LIST --------#\n")
-        f.write("REPO_ID\tREPO_NAME\tPATH\tPARENT\tLAST_UPDATE\tCARGO_VERSION\tHUB_USAGE\tHUB_STATUS\n")
+        f.write("REPO_ID\tREPO_NAME\tPATH\tPARENT\tLAST_UPDATE\tCARGO_VERSION\tHUB_USAGE\tHUB_STATUS\tIS_INTERNAL\tORG\tGROUP\tLIBRARY_TYPE\n")
         for repo in repos:
-            f.write(f"{repo.repo_id}\t{repo.repo_name}\t{repo.path}\t{repo.parent}\t{repo.last_update}\t{repo.cargo_version}\t{repo.hub_usage}\t{repo.hub_status}\n")
+            f.write(f"{repo.repo_id}\t{repo.repo_name}\t{repo.path}\t{repo.parent}\t{repo.last_update}\t{repo.cargo_version}\t{repo.hub_usage}\t{repo.hub_status}\t{repo.is_internal}\t{repo.org}\t{repo.group}\t{repo.library_type}\n")
         f.write("\n")
 
         # Section 2: DEPS VERSIONS LIST
@@ -2145,6 +2264,12 @@ def hydrate_tsv_cache(cache_file: str = None) -> EcosystemData:
                     aggregation[key] = value
 
                 elif current_section == "repos" and len(parts) >= 8:
+                    # Handle backward compatibility - old cache files might not have new fields
+                    is_internal = parts[8] if len(parts) >= 9 else "false"
+                    org = parts[9] if len(parts) >= 10 else ""
+                    group = parts[10] if len(parts) >= 11 else ""
+                    library_type = parts[11] if len(parts) >= 12 else "project"
+
                     repo = RepoData(
                         repo_id=int(parts[0]),
                         repo_name=parts[1],
@@ -2153,7 +2278,11 @@ def hydrate_tsv_cache(cache_file: str = None) -> EcosystemData:
                         last_update=int(parts[4]),
                         cargo_version=parts[5],
                         hub_usage=parts[6],
-                        hub_status=parts[7]
+                        hub_status=parts[7],
+                        is_internal=is_internal,
+                        org=org,
+                        group=group,
+                        library_type=library_type
                     )
                     repos[repo.repo_id] = repo
 
