@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (BUGS-02 completed)
+Last Updated: 2025-10-17 (QOL-01 completed - 37x cache speedup!)
 
 # Completed Work Log
 
@@ -53,3 +53,12 @@ Archive completed work here from current period/sprint. When file reaches 500+ l
 - **Commit**: fe9049a (fix: align stats/usage views and remove hard-coded hub repo_id (BUGS-02))
 - **Scope**: blade.py (get_hub_repo_id, is_local_or_workspace_dep, should_exclude_from_stats, view_stats, view_usage, view_review, learn_all_opportunities, helper functions)
 - **Verification**: All views now exclude hub repository and local/workspace deps consistently. Hub repo_id dynamically determined from TSV data instead of hard-coded to 103.
+
+### Quality of Life Improvements - Session 2025-10-17
+
+**[QOL-01]: Optimize tree scanning with md5 caching** ✅
+- **Status**: COMPLETED
+- **Description**: Implemented intelligent MD5-based caching to skip full processing when repository tree unchanged. Computes MD5 hash of Cargo.toml file list and validates cache before processing. When tree hasn't changed, skips all 5 processing phases and returns cached data instantly.
+- **Commit**: 645337c (feat: implement MD5 tree caching optimization (QOL-01))
+- **Scope**: blade.py (compute_tree_md5, save_tree_metadata, load_tree_metadata, should_use_cached_data, generate_data_cache), benchmark_qol01.py (new)
+- **Verification**: Benchmark shows 37x speedup (62.8s → 1.7s) when using cache. Full processing: 63.71s. Cached runs: 1.72s and 1.74s. Cache auto-expires after 24 hours. Metadata stored in ~/.cache/snek/blade/tree_metadata.json.

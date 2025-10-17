@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (BUGS-02 completed - stats/usage aligned)
+Last Updated: 2025-10-17 (QOL-01 completed - 37x speedup!)
 
 # Quick Reference - 30-Second Context
 
@@ -10,17 +10,17 @@ Last Updated: 2025-10-17 (BUGS-02 completed - stats/usage aligned)
 - ✅ BUGS-01: `blade data` dict error fixed
 - ✅ BUGS-03: Version canonization complete (2.0 == 2.0.0)
 - ✅ BUGS-02: stats/usage views aligned (no hard-coded ids)
+- ✅ QOL-01: Tree scanning 37x faster with MD5 cache
 - 🟢 All critical bugs resolved!
-- 🔵 Moving to QOL improvements (medium priority)
+- 🔵 QOL improvements underway (7 SP complete, 8 SP remaining)
 
 ## Remaining Work
-1. QOL-01 through QOL-04: Quality of life improvements
-2. BLADE-01: Version command with logo
-3. REF-01: Generic scripts section in walker.py
+1. QOL-02 through QOL-04: Quality of life improvements [7 SP]
+2. BLADE-01: Version command with logo [2 SP]
+3. REF-01: Generic scripts section in walker [2 SP]
 
 ## Active Priority Tasks
 See TASKS.txt for complete list. Current focus:
-- QOL-01: Optimize tree scanning with md5 caching [3 SP] ⭐ MEDIUM
 - QOL-02: Identify internal libraries [3 SP] ⭐ MEDIUM
 - QOL-03: Clarify and canonize commands [2 SP] ⭐ MEDIUM
 - QOL-04: Improve blade outdated filtering [2 SP] ⭐ MEDIUM
@@ -45,22 +45,24 @@ pytest tests/                   # Run tests (37 passing for version_utils)
 2. Continue with QOL improvements and BLADE-01
 3. See ROADMAP.txt for strategic backlog
 
-## Completed in Session 2025-10-17 (6 tasks, 18 SP)
+## Completed in Session 2025-10-17 (7 tasks, 25 SP)
 ✅ BUGS-01: Dict error handling in blade data [1 SP]
 ✅ BUGS-04: Canonical help screen [1 SP]
 ✅ BUGS-05: Filter rsb/hub from opportunities [1 SP]
 ✅ BUGS-06: Restore blade latest command [1 SP]
 ✅ BUGS-03: Version canonicalization (2.0 == 2.0.0) [3 SP]
 ✅ BUGS-02: Stats/usage view alignment (no hard-coded ids) [3 SP]
+✅ QOL-01: MD5 tree caching (37x speedup!) [3 SP]
 
-## Remaining Work (13 tasks, 22 SP)
-🔵 QOL-01 through QOL-04: Quality of life improvements [10 SP]
+## Remaining Work (12 tasks, 15 SP)
+🔵 QOL-02 through QOL-04: Quality of life improvements [7 SP]
 🔵 BLADE-01: Version command with logo [2 SP]
 🔵 REF-01: Generic scripts section in walker [2 SP]
 🟠 ROADMAP: Strategic backlog (25 SP Boxy work)
 
 ## Key Files
-- `TASKS.txt` — active work (9 real bugs/features + refactors, 18 SP remaining)
-- `DONE.txt` — completed work (6 tasks logged, 18 SP closed)
+- `TASKS.txt` — active work (12 bugs/features + refactors, 15 SP remaining)
+- `DONE.txt` — completed work (7 tasks logged, 25 SP closed)
 - `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
 - `version_utils.py` — version handling utilities with 37 passing tests
+- `benchmark_qol01.py` — performance benchmark showing 37x cache speedup

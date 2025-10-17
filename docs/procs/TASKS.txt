@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (BUGS-02 removed - completed)
+Last Updated: 2025-10-17 (QOL-01 removed - completed)
 
 # Active Tasks
 
@@ -12,15 +12,6 @@ See ROADMAP.txt for backlog and strategic work.
 (All critical bugs resolved - see DONE.txt)
 
 ### Priority 2 - Feature/UX Improvements
-
-**[QOL-01]: Optimize tree scanning with md5 caching** [3 SP] ⭐ MEDIUM
-- Context: If tree and md5 available, compare before walking to use cached repo data
-- Files: blade.py (data command), src/scanner.py
-- Success Criteria:
-  - [ ] md5 comparison logic implemented
-  - [ ] Cached data used when md5 matches
-  - [ ] Performance improvement measured
-  - [ ] Test added
 
 **[QOL-02]: Identify internal libraries and org/group** [3 SP] ⭐ MEDIUM
 - Context: `blade data` should extract internal lib info for downstream commands
