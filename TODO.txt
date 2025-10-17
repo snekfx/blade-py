@@ -1,0 +1,21 @@
+
+1. blade data > ❌ Error: 'dict' object has no attribute 'startswith'
+
+2. if tree and md5 is available, do a lazy tree scan then compare the md5 to see if any tree changes before walking that way we can use the cached repo information instead of walking again; otherwise just walk
+
+3. blade data should identify internal libraries and their internal org/group so that down stream commands and update views.
+
+4. there should only be one canonical blade help screen (help -h --help)
+
+5. stats and usage show differnt values.
+
+6. 2.0 and 2.0.0 should not be marked as conflicts (need to canonize redundant versions), also alpha rc or other pre release builds should not be treated as latest -- probably should make a note of pre-release build available vs treating it as latest
+
+7. need to parse additional version meta info like v2.0.0-deprecated
+
+8. blade outdated should only list the outdated packages a --more flag can you show in depth view
+
+9. need to clarify the user commands, some seem redundant or inaccurate
+
+10. blade hub should not present rsb or hub as opportunities
+
