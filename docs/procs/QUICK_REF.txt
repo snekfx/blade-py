@@ -1,26 +1,29 @@
-Last Updated: 2025-10-17 (BUGS-03 completed - version canonicalization done)
+Last Updated: 2025-10-17 (BUGS-02 completed - stats/usage aligned)
 
 # Quick Reference - 30-Second Context
 
 ## Current Focus
-**Fix critical bugs in blade data/stats/version handling** (Milestone M1).
+**Quality of life improvements and strategic features** (Milestone M2).
 
 ## Project Status
 - ✅ Meta Process v3 implemented with clear task tracking
 - ✅ BUGS-01: `blade data` dict error fixed
 - ✅ BUGS-03: Version canonization complete (2.0 == 2.0.0)
-- 🔴 BUGS-02: stats vs usage show inconsistent values (NEXT)
-- 🟢 CLI functional for most operations
+- ✅ BUGS-02: stats/usage views aligned (no hard-coded ids)
+- 🟢 All critical bugs resolved!
+- 🔵 Moving to QOL improvements (medium priority)
 
-## Remaining Blockers
-1. **BUGS-02** HIGH: stats/usage inconsistency (NEXT PRIORITY)
-2. QOL-01 through QOL-04: Quality of life improvements
-3. BLADE-01: Version command with logo
-4. REF-01: Generic scripts section in walker.py
+## Remaining Work
+1. QOL-01 through QOL-04: Quality of life improvements
+2. BLADE-01: Version command with logo
+3. REF-01: Generic scripts section in walker.py
 
 ## Active Priority Tasks
 See TASKS.txt for complete list. Current focus:
-- BUGS-02: stats vs usage mismatch [3 SP] ⭐ HIGH (NEXT)
+- QOL-01: Optimize tree scanning with md5 caching [3 SP] ⭐ MEDIUM
+- QOL-02: Identify internal libraries [3 SP] ⭐ MEDIUM
+- QOL-03: Clarify and canonize commands [2 SP] ⭐ MEDIUM
+- QOL-04: Improve blade outdated filtering [2 SP] ⭐ MEDIUM
 
 ## Stack & Setup
 - **Language**: Python 3.8+
@@ -42,15 +45,22 @@ pytest tests/                   # Run tests (37 passing for version_utils)
 2. Continue with QOL improvements and BLADE-01
 3. See ROADMAP.txt for strategic backlog
 
-## Completed in Session 2025-10-17
-✅ BUGS-01: Dict error handling in blade data
-✅ BUGS-04: Canonical help screen
-✅ BUGS-05: Filter rsb/hub from opportunities
-✅ BUGS-06: Restore blade latest command
-✅ BUGS-03: Version canonicalization (2.0 == 2.0.0)
+## Completed in Session 2025-10-17 (6 tasks, 18 SP)
+✅ BUGS-01: Dict error handling in blade data [1 SP]
+✅ BUGS-04: Canonical help screen [1 SP]
+✅ BUGS-05: Filter rsb/hub from opportunities [1 SP]
+✅ BUGS-06: Restore blade latest command [1 SP]
+✅ BUGS-03: Version canonicalization (2.0 == 2.0.0) [3 SP]
+✅ BUGS-02: Stats/usage view alignment (no hard-coded ids) [3 SP]
+
+## Remaining Work (13 tasks, 22 SP)
+🔵 QOL-01 through QOL-04: Quality of life improvements [10 SP]
+🔵 BLADE-01: Version command with logo [2 SP]
+🔵 REF-01: Generic scripts section in walker [2 SP]
+🟠 ROADMAP: Strategic backlog (25 SP Boxy work)
 
 ## Key Files
-- `TASKS.txt` — active work (10 real bugs/features + refactors, 20 SP remaining)
+- `TASKS.txt` — active work (9 real bugs/features + refactors, 18 SP remaining)
+- `DONE.txt` — completed work (6 tasks logged, 18 SP closed)
 - `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
-- `DONE.txt` — completed work (5 tasks logged)
-- `version_utils.py` — version handling utilities
+- `version_utils.py` — version handling utilities with 37 passing tests

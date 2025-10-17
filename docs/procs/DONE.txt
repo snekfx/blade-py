@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (BUGS-03 completed)
+Last Updated: 2025-10-17 (BUGS-02 completed)
 
 # Completed Work Log
 
@@ -46,3 +46,10 @@ Archive completed work here from current period/sprint. When file reaches 500+ l
 - **Commit**: 7857394 (fix: implement version canonicalization and pre-release filtering (BUGS-03))
 - **Scope**: version_utils.py (new), blade.py (parse_version, get_latest_stable_version), tests/test_version_utils.py (new)
 - **Verification**: All 37 tests passing. Core test verifies 2.0 and 2.0.0 treated as equivalent. `blade conflicts` shows accurate version conflicts without false positives.
+
+**[BUGS-02]: Fix stats vs usage showing different values** ✅
+- **Status**: COMPLETED
+- **Description**: Aligned stats and usage views to report consistent counts. Removed hard-coded hub repo_id (103) and instead derive it dynamically from RepoData. Created helper functions: get_hub_repo_id() finds hub from repo_name, is_local_or_workspace_dep() handles both legacy and new TSV formats, should_exclude_from_stats() consolidates exclusion logic. Updated all views (stats, usage, review, hub learn) to use consistent filtering.
+- **Commit**: fe9049a (fix: align stats/usage views and remove hard-coded hub repo_id (BUGS-02))
+- **Scope**: blade.py (get_hub_repo_id, is_local_or_workspace_dep, should_exclude_from_stats, view_stats, view_usage, view_review, learn_all_opportunities, helper functions)
+- **Verification**: All views now exclude hub repository and local/workspace deps consistently. Hub repo_id dynamically determined from TSV data instead of hard-coded to 103.

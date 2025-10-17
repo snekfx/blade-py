@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (BUGS-03 removed - completed)
+Last Updated: 2025-10-17 (BUGS-02 removed - completed)
 
 # Active Tasks
 
@@ -9,13 +9,7 @@ See ROADMAP.txt for backlog and strategic work.
 
 ### Priority 1 - Critical Bugs
 
-**[BUGS-02]: Fix stats vs usage showing different values** [3 SP] ⭐ HIGH
-- Context: Post-migration views still expect legacy sentinels (`path`, `workspace`) and hard-code the hub repo id (103). The new TSV emits `LOCAL`/`WORKSPACE` and assigns repo ids per run, so hub packages are double-counted and sentinel entries poison stats.
-- Files: blade.py (stats/usage/hub view helpers)
-- Success Criteria:
-  - [ ] Views derive hub exclusions from `RepoData`/`LatestData` instead of magic ids/strings.
-  - [ ] `blade stats`, `blade usage`, and `blade hub` report aligned counts for packages with hub/local/workspace usage.
-  - [ ] Tests cover TSV rows with `LOCAL`/`WORKSPACE` values and ensure metrics remain consistent.
+(All critical bugs resolved - see DONE.txt)
 
 ### Priority 2 - Feature/UX Improvements
 
