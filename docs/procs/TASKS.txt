@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17
+Last Updated: 2025-10-17 (BUGS-03 removed - completed)
 
 # Active Tasks
 
@@ -16,19 +16,6 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Views derive hub exclusions from `RepoData`/`LatestData` instead of magic ids/strings.
   - [ ] `blade stats`, `blade usage`, and `blade hub` report aligned counts for packages with hub/local/workspace usage.
   - [ ] Tests cover TSV rows with `LOCAL`/`WORKSPACE` values and ensure metrics remain consistent.
-
-**[BUGS-03]: Version canonization (2.0 == 2.0.0 should not conflict)** [3 SP] ⭐ HIGH
-- Context: Different version formats treated as conflicts when they're equivalent
-- Files: src/version_utils.py or similar
-- Requirements:
-  - Canonize version formats
-  - Exclude pre-releases (alpha, rc) from "latest"
-  - Parse version metadata (e.g., v2.0.0-deprecated)
-- Success Criteria:
-  - [ ] 2.0 and 2.0.0 recognized as same
-  - [ ] Pre-releases not marked as latest
-  - [ ] Version metadata parsed correctly
-  - [ ] Tests covering version scenarios
 
 ### Priority 2 - Feature/UX Improvements
 

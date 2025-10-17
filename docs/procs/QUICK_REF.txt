@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (updated with blade-repo and cargo_git_fixer tasks)
+Last Updated: 2025-10-17 (BUGS-03 completed - version canonicalization done)
 
 # Quick Reference - 30-Second Context
 
@@ -7,21 +7,20 @@ Last Updated: 2025-10-17 (updated with blade-repo and cargo_git_fixer tasks)
 
 ## Project Status
 - ✅ Meta Process v3 implemented with clear task tracking
-- 🔴 CRITICAL: `blade data` crashes with dict error
-- 🔴 HIGH: Version conflicts incorrectly marked (2.0 vs 2.0.0)
-- 🟡 HIGH: stats vs usage show inconsistent values
-- 🟢 CLI functional for other operations
+- ✅ BUGS-01: `blade data` dict error fixed
+- ✅ BUGS-03: Version canonization complete (2.0 == 2.0.0)
+- 🔴 BUGS-02: stats vs usage show inconsistent values (NEXT)
+- 🟢 CLI functional for most operations
 
-## Critical Blockers
-1. **BUGS-01** CRITICAL: blade data crashes (dict error)
-2. **BUGS-02** HIGH: stats/usage inconsistency
-3. **BUGS-03** HIGH: Version canonization missing
+## Remaining Blockers
+1. **BUGS-02** HIGH: stats/usage inconsistency (NEXT PRIORITY)
+2. QOL-01 through QOL-04: Quality of life improvements
+3. BLADE-01: Version command with logo
+4. REF-01: Generic scripts section in walker.py
 
 ## Active Priority Tasks
 See TASKS.txt for complete list. Current focus:
-- BUGS-01: Fix dict error in blade data [2 SP] ⭐ CRITICAL
-- BUGS-02: stats vs usage mismatch [2 SP] ⭐ HIGH
-- BUGS-03: Version canonization [3 SP] ⭐ HIGH
+- BUGS-02: stats vs usage mismatch [3 SP] ⭐ HIGH (NEXT)
 
 ## Stack & Setup
 - **Language**: Python 3.8+
@@ -31,20 +30,27 @@ See TASKS.txt for complete list. Current focus:
 
 ## Key Commands
 ```bash
-python blade.py data            # Currently FAILS
-python blade.py stats           # Check values
+python blade.py conflicts       # Verify version canonicalization working
+python blade.py stats           # Check values vs usage
 python blade.py usage           # Compare with stats
 python blade.py --help          # Help screen
-pytest tests/                   # Run tests
+pytest tests/                   # Run tests (37 passing for version_utils)
 ```
 
 ## Next Steps
-1. Fix BUGS-01 (dict error in blade data) - CRITICAL
-2. Run blade data to verify
-3. Move to BUGS-02 & BUGS-03
-4. See ROADMAP.txt for strategic backlog
+1. Work on BUGS-02 (stats vs usage inconsistency)
+2. Continue with QOL improvements and BLADE-01
+3. See ROADMAP.txt for strategic backlog
+
+## Completed in Session 2025-10-17
+✅ BUGS-01: Dict error handling in blade data
+✅ BUGS-04: Canonical help screen
+✅ BUGS-05: Filter rsb/hub from opportunities
+✅ BUGS-06: Restore blade latest command
+✅ BUGS-03: Version canonicalization (2.0 == 2.0.0)
 
 ## Key Files
-- `TASKS.txt` — active work (11 real bugs/features + refactors, 23 SP total)
+- `TASKS.txt` — active work (10 real bugs/features + refactors, 20 SP remaining)
 - `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
-- `PROCESS.txt` — workflow details
+- `DONE.txt` — completed work (5 tasks logged)
+- `version_utils.py` — version handling utilities

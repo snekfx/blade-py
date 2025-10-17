@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17
+Last Updated: 2025-10-17 (BUGS-03 completed)
 
 # Completed Work Log
 
@@ -37,3 +37,12 @@ Archive completed work here from current period/sprint. When file reaches 500+ l
 - **Commit**: fd9bcdf (fix: use configurable HUB_PATH in blade learn command)
 - **Scope**: blade.py (argparse configuration)
 - **Verification**: `blade latest foo` runs without argparse errors
+
+### Version Canonicalization - Session 2025-10-17
+
+**[BUGS-03]: Version canonization (2.0 == 2.0.0 should not conflict)** ✅
+- **Status**: COMPLETED
+- **Description**: Implemented comprehensive version canonicalization. Created version_utils.py module with proper version handling: canonicalize_version normalizes formats via packaging.version, is_prerelease detects alpha/beta/rc, filter_prerelease removes unstable versions, get_latest_stable returns non-prerelease versions. Updated blade.py parse_version() to use canonicalization and get_latest_stable_version() to explicitly verify non-prerelease status.
+- **Commit**: 7857394 (fix: implement version canonicalization and pre-release filtering (BUGS-03))
+- **Scope**: version_utils.py (new), blade.py (parse_version, get_latest_stable_version), tests/test_version_utils.py (new)
+- **Verification**: All 37 tests passing. Core test verifies 2.0 and 2.0.0 treated as equivalent. `blade conflicts` shows accurate version conflicts without false positives.
