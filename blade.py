@@ -1851,13 +1851,16 @@ def generate_version_analysis(deps: List[DepData], repos: List[RepoData], latest
         latest = latest_versions.get(dep.pkg_name)
 
         if repo and latest:
+            # Defensive: Ensure pkg_version is a string (handle workspace/local dicts)
+            pkg_version = str(dep.pkg_version) if not isinstance(dep.pkg_version, str) else dep.pkg_version
+
             # Determine version state
-            version_state = get_version_stability(dep.pkg_version)
+            version_state = get_version_stability(pkg_version)
 
             # Determine breaking type
             breaking_type = "unknown"
-            if not dep.pkg_version.startswith(('path:', 'git:', 'workspace:')):
-                breaking_type = determine_breaking_type(dep.pkg_version, latest.latest_version)
+            if not pkg_version.startswith(('path:', 'git:', 'workspace:')):
+                breaking_type = determine_breaking_type(pkg_version, latest.latest_version)
 
             # Determine ecosystem status (simplified for now)
             ecosystem_status = "normal"
@@ -1888,6 +1891,10 @@ def determine_breaking_type(current_version: str, latest_version: str) -> str:
 
 def get_version_stability(version_str: str) -> str:
     """Get version stability status"""
+    # Defensive: Convert non-string to string (handle workspace/local dicts)
+    if not isinstance(version_str, str):
+        version_str = str(version_str)
+
     if version_str.startswith(('path:', 'git:', 'workspace:')):
         return "local"
 
