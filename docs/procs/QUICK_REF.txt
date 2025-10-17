@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (QOL-01 completed - 37x speedup!)
+Last Updated: 2025-10-17 (QOL-02 completed - org/lib metadata added)
 
 # Quick Reference - 30-Second Context
 
@@ -45,7 +45,7 @@ pytest tests/                   # Run tests (37 passing for version_utils)
 2. Continue with QOL improvements and BLADE-01
 3. See ROADMAP.txt for strategic backlog
 
-## Completed in Session 2025-10-17 (7 tasks, 25 SP)
+## Completed in Session 2025-10-17 (8 tasks, 28 SP)
 ✅ BUGS-01: Dict error handling in blade data [1 SP]
 ✅ BUGS-04: Canonical help screen [1 SP]
 ✅ BUGS-05: Filter rsb/hub from opportunities [1 SP]
@@ -53,16 +53,17 @@ pytest tests/                   # Run tests (37 passing for version_utils)
 ✅ BUGS-03: Version canonicalization (2.0 == 2.0.0) [3 SP]
 ✅ BUGS-02: Stats/usage view alignment (no hard-coded ids) [3 SP]
 ✅ QOL-01: MD5 tree caching (37x speedup!) [3 SP]
+✅ QOL-02: Internal library detection + org/group metadata [3 SP]
 
-## Remaining Work (12 tasks, 15 SP)
-🔵 QOL-02 through QOL-04: Quality of life improvements [7 SP]
+## Remaining Work (11 tasks, 12 SP)
+🔵 QOL-03/04: Quality of life improvements [4 SP]
 🔵 BLADE-01: Version command with logo [2 SP]
 🔵 REF-01: Generic scripts section in walker [2 SP]
 🟠 ROADMAP: Strategic backlog (25 SP Boxy work)
 
 ## Key Files
-- `TASKS.txt` — active work (12 bugs/features + refactors, 15 SP remaining)
-- `DONE.txt` — completed work (7 tasks logged, 25 SP closed)
+- `TASKS.txt` — active work (11 bugs/features + refactors, 12 SP remaining)
+- `DONE.txt` — completed work (8 tasks logged, 28 SP closed)
 - `ROADMAP.txt` — strategic backlog (25 SP Boxy work)
 - `version_utils.py` — version handling utilities with 37 passing tests
 - `benchmark_qol01.py` — performance benchmark showing 37x cache speedup

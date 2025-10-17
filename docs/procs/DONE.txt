@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (QOL-01 completed - 37x cache speedup!)
+Last Updated: 2025-10-17 (QOL-02 completed - internal lib detection added)
 
 # Completed Work Log
 
@@ -62,3 +62,10 @@ Archive completed work here from current period/sprint. When file reaches 500+ l
 - **Commit**: 645337c (feat: implement MD5 tree caching optimization (QOL-01))
 - **Scope**: blade.py (compute_tree_md5, save_tree_metadata, load_tree_metadata, should_use_cached_data, generate_data_cache), benchmark_qol01.py (new)
 - **Verification**: Benchmark shows 37x speedup (62.8s → 1.7s) when using cache. Full processing: 63.71s. Cached runs: 1.72s and 1.74s. Cache auto-expires after 24 hours. Metadata stored in ~/.cache/snek/blade/tree_metadata.json.
+
+**[QOL-02]: Identify internal libraries and org/group** ✅
+- **Status**: COMPLETED
+- **Description**: Extended data model to detect and classify internal libraries, extract organizational metadata, and identify library types. RepoData now captures: is_internal (true/false), org (organization), group (project group), library_type (binary/library/workspace/project). Backward compatible TSV format with defensive hydration for old cache files.
+- **Commit**: a284974 (feat: extend data model with internal library detection (QOL-02))
+- **Scope**: blade.py (detect_internal_library, extract_org_group, detect_library_type, extract_repo_metadata_batch, write_tsv_cache, hydrate_tsv_cache)
+- **Verification**: Data successfully extracted for 39 repos. Internal libraries correctly identified (publish=false, private licenses, gitlab URLs). Org/group extracted from paths (e.g., meteordb/xstream, oodx/hub). Library types detected (binary, library, workspace, project). MD5 cache remains valid - no invalidation.

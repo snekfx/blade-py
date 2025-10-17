@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17 (QOL-01 removed - completed)
+Last Updated: 2025-10-17 (QOL-02 removed - completed)
 
 # Active Tasks
 
@@ -12,15 +12,6 @@ See ROADMAP.txt for backlog and strategic work.
 (All critical bugs resolved - see DONE.txt)
 
 ### Priority 2 - Feature/UX Improvements
-
-**[QOL-02]: Identify internal libraries and org/group** [3 SP] ⭐ MEDIUM
-- Context: `blade data` should extract internal lib info for downstream commands
-- Files: src/scanner.py, blade.py
-- Success Criteria:
-  - [ ] Internal libraries identified
-  - [ ] Org/group metadata captured
-  - [ ] Available in other commands
-  - [ ] Documentation updated
 
 **[QOL-03]: Clarify and canonize user commands** [2 SP] ⭐ MEDIUM
 - Context: Some commands seem redundant or inaccurate
