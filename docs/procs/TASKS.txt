@@ -9,21 +9,27 @@ See ROADMAP.txt for backlog and strategic work.
 
 ### Priority 1 - Critical Bugs
 
-**[BUGS-01]: Fix 'dict' object has no attribute 'startswith' error in blade data** [2 SP] ⭐ CRITICAL
-- Context: `blade data` command crashes immediately
-- Files: blade.py (data command handler)
+**[BUGS-01]: Fix 'dict' object has no attribute 'startswith' error in blade data** [3 SP] ⭐ CRITICAL
+- Context: `blade data` crashes when processing workspace/local dependencies. Raw dict objects (e.g. `{workspace: true}`) bypass `parse_dependency_info` and survive into `generate_version_analysis` line 1865 where `.startswith()` is called on them.
+- Files: blade.py (`parse_dependency_info`, `extract_dependencies_batch`, `generate_version_analysis`)
+- Investigation: Codex identified that workspace/local versions should be normalized:
+  - `resolve_workspace_version()` returns "WORKSPACE" string ✓
+  - `resolve_local_version()` returns "LOCAL" string ✓
+  - But dict is still getting through - likely in fallback/edge case
 - Success Criteria:
-  - [ ] Error identified and root cause fixed
-  - [ ] blade data runs without error
+  - [ ] Trace where raw dict can bypass `parse_dependency_info` (e.g., edge case in extraction)
+  - [ ] Ensure all version types are stringified: "WORKSPACE", "LOCAL", "git", or actual version string
+  - [ ] Add defensive check: `if not isinstance(dep.pkg_version, str)` before `.startswith()`
+  - [ ] `blade data` runs end-to-end on repos with `{workspace = true}`, local path deps, git sources
   - [ ] Test added to prevent regression
 
-**[BUGS-02]: Fix stats vs usage showing different values** [2 SP] ⭐ HIGH
-- Context: `blade stats` and `blade usage` report inconsistent data for same packages
-- Files: blade.py (stats/usage commands), src/
+**[BUGS-02]: Fix stats vs usage showing different values** [3 SP] ⭐ HIGH
+- Context: Post-migration views still expect legacy sentinels (`path`, `workspace`) and hard-code the hub repo id (103). The new TSV emits `LOCAL`/`WORKSPACE` and assigns repo ids per run, so hub packages are double-counted and sentinel entries poison stats.
+- Files: blade.py (stats/usage/hub view helpers)
 - Success Criteria:
-  - [ ] Root cause identified
-  - [ ] Both commands report same values
-  - [ ] Test added for consistency
+  - [ ] Views derive hub exclusions from `RepoData`/`LatestData` instead of magic ids/strings.
+  - [ ] `blade stats`, `blade usage`, and `blade hub` report aligned counts for packages with hub/local/workspace usage.
+  - [ ] Tests cover TSV rows with `LOCAL`/`WORKSPACE` values and ensure metrics remain consistent.
 
 **[BUGS-03]: Version canonization (2.0 == 2.0.0 should not conflict)** [3 SP] ⭐ HIGH
 - Context: Different version formats treated as conflicts when they're equivalent
@@ -91,6 +97,14 @@ See ROADMAP.txt for backlog and strategic work.
 - Success Criteria:
   - [ ] rsb and hub excluded from opportunities
   - [ ] Test added
+
+**[BUGS-06]: Restore blade latest command CLI access** [1 SP] ⭐ MEDIUM
+- Context: The argparse `choices` list omits `latest`, so `blade latest <crate>` exits before reaching the handler.
+- Files: blade.py (argparse configuration)
+- Success Criteria:
+  - [ ] `blade latest foo` parses and runs without argparse errors.
+  - [ ] Help/usage text lists the command.
+  - [ ] Smoke test verifies the command path.
 
 **[BLADE-01]: Implement proper version command with logo** [2 SP] ⭐ MEDIUM
 - Context: `blade version -v --version` should show ASCII logo and pull version from pyproject.toml (like featpy)
