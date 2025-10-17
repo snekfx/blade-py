@@ -83,43 +83,13 @@ else
     exit 1
 fi
 
-# Deploy Cargo Git Fixer tool
-echo ""
-echo "🔧 Deploying Cargo Git Fixer tool..."
-FIXER_SOURCE="$ROOT_DIR/bin/cargo_git_fixer.py"
-FIXER_TARGET="$SNAKE_BIN_DIR/cargo-git-fixer"
-
-if [ -f "$FIXER_SOURCE" ]; then
-    if ! cp "$FIXER_SOURCE" "$FIXER_TARGET"; then
-        echo "❌ Failed to copy cargo-git-fixer to $FIXER_TARGET"
-        exit 1
-    fi
-
-    if ! chmod +x "$FIXER_TARGET"; then
-        echo "❌ Failed to make cargo-git-fixer executable"
-        exit 1
-    fi
-
-    echo "✅ Cargo Git Fixer deployed to $FIXER_TARGET"
-
-    if command -v cargo-git-fixer >/dev/null 2>&1; then
-        echo "✅ cargo-git-fixer is available in PATH"
-    else
-        echo "⚠️  Warning: cargo-git-fixer not found in PATH (may need to restart shell)"
-    fi
-else
-    echo "❌ Error: cargo_git_fixer.py not found at $FIXER_SOURCE"
-    exit 1
-fi
-
 echo ""
 echo "╔════════════════════════════════════════════════╗"
 echo "║          DEPLOYMENT SUCCESSFUL!                ║"
 echo "╚════════════════════════════════════════════════╝"
 echo "  Deployed Tools (v$VERSION):"
-echo "    • Blade           → $BLADE_TARGET"
-echo "    • Walker          → $WALKER_TARGET"
-echo "    • Cargo Git Fixer → $FIXER_TARGET"
+echo "    • Blade  → $BLADE_TARGET"
+echo "    • Walker → $WALKER_TARGET"
 echo ""
 echo "  Location: $SNAKE_BIN_DIR/"
 echo ""
@@ -138,8 +108,5 @@ echo "🚶 Walker repository discovery:"
 echo "   walker                      # Scan from current directory"
 echo "   walker --root <path>        # Scan from specific root"
 echo "   walker --stats              # Show repository statistics"
-echo ""
-echo "🔧 Cargo Git Fixer:"
-echo "   cargo-git-fixer             # Setup cargo git config"
 echo ""
 echo "🚀 Ready to slice through your dependency management!"

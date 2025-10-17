@@ -123,22 +123,6 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Python project detection improved
   - [ ] Tests updated
 
-**[REF-02]: Integrate cargo_git_fixer into blade commands** [2 SP] ⭐ MEDIUM
-- Context: cargo_git_fixer is standalone tool; should be `blade fix-git` subcommand (already in README as reference)
-- Files: blade.py, bin/cargo_git_fixer.py
-- Requirements:
-  - Add/enhance `blade fix-git` command (wraps cargo_git_fixer)
-  - Validate ~/.cargo/config.toml setup
-  - Detect git auth failures
-  - Suggest SSH improvements
-  - Reuse cargo_git_fixer.py code as module
-- Success Criteria:
-  - [ ] blade fix-git validates cargo config
-  - [ ] Proper error messages for auth issues
-  - [ ] SSH setup instructions provided
-  - [ ] Tests pass
-  - [ ] cargo_git_fixer.py documented as internal
-
 ---
 
 ## Task Template (for reference)
