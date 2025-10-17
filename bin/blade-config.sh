@@ -94,7 +94,8 @@ main() {
     fi
 
     echo ""
-    echo "Configuration complete! You can now run blade.py and walker.py"
+    echo "Configuration complete! You can now run blade.py, walker.py, and cargo_git_fixer.py"
+    echo "(Or use deployed commands: blade, walker, cargo-git-fixer)"
     echo ""
     echo "To make this permanent, add to your ~/.bashrc or ~/.zshrc:"
     echo "  export RUST_REPO_ROOT=\"$RUST_REPO_ROOT\""

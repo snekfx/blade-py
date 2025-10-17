@@ -108,8 +108,8 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Test added
 
 **[REF-01]: Refactor walker.py to use generic scripts section** [2 SP] ⭐ HIGH
-- Context: walker (formerly blade-repo) special-cases test.sh, build.sh, deploy.sh as "key_scripts"; should be generic
-- Files: walker.py
+- Context: walker special-cases test.sh, build.sh, deploy.sh as "key_scripts"; should be generic
+- Files: bin/walker.py
 - Requirements:
   - Remove special "key_scripts" tracking (test.sh, build.sh, deploy.sh)
   - Move all scripts to generic "scripts_found" section
@@ -125,7 +125,7 @@ See ROADMAP.txt for backlog and strategic work.
 
 **[REF-02]: Integrate cargo_git_fixer into blade commands** [2 SP] ⭐ MEDIUM
 - Context: cargo_git_fixer is standalone tool; should be `blade fix-git` subcommand (already in README as reference)
-- Files: blade.py, cargo_git_fixer.py
+- Files: blade.py, bin/cargo_git_fixer.py
 - Requirements:
   - Add/enhance `blade fix-git` command (wraps cargo_git_fixer)
   - Validate ~/.cargo/config.toml setup

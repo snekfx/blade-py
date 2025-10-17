@@ -20,10 +20,11 @@ echo "║ Target:  $SNAKE_BIN_DIR/                       ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 
-# Deploy Blade tool
-echo "⚔️  Deploying Blade tool..."
+# Create bin directory
 mkdir -p "$SNAKE_BIN_DIR"
 
+# Deploy Blade tool
+echo "⚔️  Deploying Blade tool..."
 REPOS_SOURCE="$ROOT_DIR/blade.py"
 BLADE_TARGET="$SNAKE_BIN_DIR/blade"
 
@@ -49,7 +50,65 @@ if [ -f "$REPOS_SOURCE" ]; then
         echo "⚠️  Warning: blade not found in PATH (may need to restart shell)"
     fi
 else
-    echo "❌ Error: repos.py not found at $REPOS_SOURCE"
+    echo "❌ Error: blade.py not found at $REPOS_SOURCE"
+    exit 1
+fi
+
+# Deploy Walker tool
+echo ""
+echo "🚶 Deploying Walker tool..."
+WALKER_SOURCE="$ROOT_DIR/bin/walker.py"
+WALKER_TARGET="$SNAKE_BIN_DIR/walker"
+
+if [ -f "$WALKER_SOURCE" ]; then
+    if ! cp "$WALKER_SOURCE" "$WALKER_TARGET"; then
+        echo "❌ Failed to copy walker to $WALKER_TARGET"
+        exit 1
+    fi
+
+    if ! chmod +x "$WALKER_TARGET"; then
+        echo "❌ Failed to make walker executable"
+        exit 1
+    fi
+
+    echo "✅ Walker tool deployed to $WALKER_TARGET"
+
+    if command -v walker >/dev/null 2>&1; then
+        echo "✅ walker is available in PATH"
+    else
+        echo "⚠️  Warning: walker not found in PATH (may need to restart shell)"
+    fi
+else
+    echo "❌ Error: walker.py not found at $WALKER_SOURCE"
+    exit 1
+fi
+
+# Deploy Cargo Git Fixer tool
+echo ""
+echo "🔧 Deploying Cargo Git Fixer tool..."
+FIXER_SOURCE="$ROOT_DIR/bin/cargo_git_fixer.py"
+FIXER_TARGET="$SNAKE_BIN_DIR/cargo-git-fixer"
+
+if [ -f "$FIXER_SOURCE" ]; then
+    if ! cp "$FIXER_SOURCE" "$FIXER_TARGET"; then
+        echo "❌ Failed to copy cargo-git-fixer to $FIXER_TARGET"
+        exit 1
+    fi
+
+    if ! chmod +x "$FIXER_TARGET"; then
+        echo "❌ Failed to make cargo-git-fixer executable"
+        exit 1
+    fi
+
+    echo "✅ Cargo Git Fixer deployed to $FIXER_TARGET"
+
+    if command -v cargo-git-fixer >/dev/null 2>&1; then
+        echo "✅ cargo-git-fixer is available in PATH"
+    else
+        echo "⚠️  Warning: cargo-git-fixer not found in PATH (may need to restart shell)"
+    fi
+else
+    echo "❌ Error: cargo_git_fixer.py not found at $FIXER_SOURCE"
     exit 1
 fi
 
@@ -57,10 +116,14 @@ echo ""
 echo "╔════════════════════════════════════════════════╗"
 echo "║          DEPLOYMENT SUCCESSFUL!                ║"
 echo "╚════════════════════════════════════════════════╝"
-echo "  Deployed: Blade v$VERSION                      "
-echo "  Location: $BLADE_TARGET                        "
+echo "  Deployed Tools (v$VERSION):"
+echo "    • Blade           → $BLADE_TARGET"
+echo "    • Walker          → $WALKER_TARGET"
+echo "    • Cargo Git Fixer → $FIXER_TARGET"
 echo ""
-echo "⚔️  Blade dependency management commands:"
+echo "  Location: $SNAKE_BIN_DIR/"
+echo ""
+echo "⚔️  Blade dependency management:"
 echo "   blade hub                   # Hub package status with safety analysis"
 echo "   blade conflicts             # Version conflicts across ecosystem"
 echo "   blade review                # Comprehensive dependency review"
@@ -70,5 +133,13 @@ echo "   blade update <repo>         # Update specific repository dependencies"
 echo "   blade eco                   # Update entire ecosystem"
 echo "   blade search <package>      # Search for package information"
 echo "   blade --help                # Full command reference"
+echo ""
+echo "🚶 Walker repository discovery:"
+echo "   walker                      # Scan from current directory"
+echo "   walker --root <path>        # Scan from specific root"
+echo "   walker --stats              # Show repository statistics"
+echo ""
+echo "🔧 Cargo Git Fixer:"
+echo "   cargo-git-fixer             # Setup cargo git config"
 echo ""
 echo "🚀 Ready to slice through your dependency management!"
