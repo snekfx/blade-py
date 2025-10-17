@@ -92,6 +92,21 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] rsb and hub excluded from opportunities
   - [ ] Test added
 
+**[BLADE-01]: Implement proper version command with logo** [2 SP] ⭐ MEDIUM
+- Context: `blade version -v --version` should show ASCII logo and pull version from pyproject.toml (like featpy)
+- Files: blade.py (version command), ASCII logo file
+- Requirements:
+  - Works with: version, -v, --version flags
+  - Display ASCII logo at top
+  - Read version from pyproject.toml
+  - Help command should also show logo
+- Success Criteria:
+  - [ ] version command works with all flags
+  - [ ] Logo displays in version output
+  - [ ] Version read from pyproject.toml correctly
+  - [ ] Help screen includes logo
+  - [ ] Test added
+
 ---
 
 ## Task Template (for reference)
