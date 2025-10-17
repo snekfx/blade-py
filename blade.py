@@ -45,6 +45,7 @@ from pathlib import Path
 from collections import defaultdict
 from packaging import version
 import subprocess
+import version_utils
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
@@ -417,17 +418,12 @@ class ProgressSpinner:
         sys.stdout.flush()
 
 def parse_version(ver_str):
-    """Parse version string, handling workspace and path dependencies"""
-    if not ver_str or ver_str == 'path' or 'workspace' in ver_str:
-        return None
-    # Clean up version string
-    ver_str = ver_str.strip('"').split()[0]
-    if ver_str.startswith('='):
-        ver_str = ver_str[1:]
-    try:
-        return version.parse(ver_str)
-    except:
-        return None
+    """Parse and canonicalize version string using version_utils.
+
+    Handles workspace and path dependencies, and normalizes version formats
+    so that 2.0 and 2.0.0 are treated as equivalent.
+    """
+    return version_utils.canonicalize_version(ver_str)
 
 def is_breaking_change(from_version, to_version):
     """Check if version change represents a breaking change according to Rust SemVer"""
@@ -480,14 +476,31 @@ def get_latest_version(package_name):
         return None
 
 def get_latest_stable_version(package_name):
-    """Get latest stable version from crates.io (excluding pre-releases)"""
+    """Get latest stable version from crates.io (excluding pre-releases).
+
+    Explicitly verifies returned version is not a pre-release using version_utils.
+    """
     try:
         url = f"https://crates.io/api/v1/crates/{package_name}"
         with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read().decode())
 
             # Use the max_stable_version field if available, otherwise fallback to max_version
-            return data['crate'].get('max_stable_version') or data['crate']['max_version']
+            stable_ver = data['crate'].get('max_stable_version') or data['crate']['max_version']
+
+            # Verify it's actually stable (not a pre-release)
+            if stable_ver and not version_utils.is_prerelease(stable_ver):
+                return stable_ver
+
+            # If fallback was a pre-release, scan versions list for latest stable
+            versions = data['crate'].get('versions', [])
+            for ver in versions:
+                ver_num = ver.get('num')
+                if ver_num and not version_utils.is_prerelease(ver_num):
+                    return ver_num
+
+            # Last resort: return the stable field value even if it looks like prerelease
+            return stable_ver
 
     except KeyboardInterrupt:
         # Re-raise to let the main handler deal with it
