@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-Repository discovery tool - Finds git projects and determines their type
+Walker - Repository discovery and analysis tool
+Walks filesystem to find git projects and determines their type, language, and structure.
+
 Usage:
-  python blade-repo.py             # Scan from current directory
-  python blade-repo.py --root PATH # Scan from specific root
-  python blade-repo.py --update    # Update existing repo data
-  python blade-repo.py --stats     # Show repository statistics
+  python walker.py             # Scan from current directory
+  python walker.py --root PATH # Scan from specific root
+  python walker.py --update    # Update existing repo data
+  python walker.py --stats     # Show repository statistics
+
+Purpose:
+  General-purpose repository surveyor across all languages and ecosystems.
+  Provides structured metadata about discovered repos for other tools to consume.
 """
 
 import os

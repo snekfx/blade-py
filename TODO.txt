@@ -19,3 +19,4 @@
 
 10. blade hub should not present rsb or hub as opportunities
 
+11. blade needs proper version command (version -v --version) that works like featpy (uses the ascii logo, and grabs version information from pyproject.toml) help command should also show the logo on the top.

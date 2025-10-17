@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Blade configuration helper
-# Sets up environment variables for blade.py and blade-repo.py
+# Sets up environment variables for blade.py and walker.py
 
 # Auto-detect rust root
 detect_rust_root() {
@@ -94,7 +94,7 @@ main() {
     fi
 
     echo ""
-    echo "Configuration complete! You can now run blade.py and blade-repo.py"
+    echo "Configuration complete! You can now run blade.py and walker.py"
     echo ""
     echo "To make this permanent, add to your ~/.bashrc or ~/.zshrc:"
     echo "  export RUST_REPO_ROOT=\"$RUST_REPO_ROOT\""
