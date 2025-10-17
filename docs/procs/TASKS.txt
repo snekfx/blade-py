@@ -1,4 +1,4 @@
-Last Updated: 2025-10-17
+Last Updated: 2025-10-17 (added blade-repo and cargo_git_fixer modernization tasks)
 
 # Active Tasks
 
@@ -106,6 +106,53 @@ See ROADMAP.txt for backlog and strategic work.
   - [ ] Version read from pyproject.toml correctly
   - [ ] Help screen includes logo
   - [ ] Test added
+
+**[REF-01]: Update blade-repo.py for modern Python tooling** [3 SP] ⭐ HIGH
+- Context: blade-repo tracks legacy shell scripts; test.sh is deprecated (replaced by testpy)
+- Files: blade-repo.py
+- Requirements:
+  - Remove test.sh from key_scripts (LEGACY - use testpy now)
+  - Add testpy detection as primary testing indicator
+  - Track pyproject.toml, setup.py, pyproject.toml presence
+  - Identify Python package structure (src/, module/, etc.)
+  - Flag build.sh and deploy.sh as "transitional" (may become legacy)
+- Success Criteria:
+  - [ ] test.sh no longer tracked (mark as legacy)
+  - [ ] testpy/pytest detection added
+  - [ ] Python project detection improved
+  - [ ] Repo metadata includes modern tooling info
+  - [ ] Tests updated
+
+**[REF-02]: Integrate blade-repo into blade commands** [3 SP] ⭐ MEDIUM
+- Context: blade-repo is standalone tool; should be `blade repo` subcommand
+- Files: blade.py, blade-repo.py
+- Requirements:
+  - Add `blade repo` subcommand (wraps blade-repo functionality)
+  - Commands: blade repo scan, blade repo stats, blade repo update
+  - No need for separate script invocation
+  - Reuse blade-repo.py code as module
+- Success Criteria:
+  - [ ] blade repo scan works
+  - [ ] blade repo stats works
+  - [ ] blade repo update works
+  - [ ] Tests pass
+  - [ ] blade-repo.py still available standalone (or documented as internal)
+
+**[REF-03]: Integrate cargo_git_fixer into blade commands** [2 SP] ⭐ MEDIUM
+- Context: cargo_git_fixer is standalone tool; should be `blade fix-git` subcommand (already in README as reference)
+- Files: blade.py, cargo_git_fixer.py
+- Requirements:
+  - Add/enhance `blade fix-git` command (wraps cargo_git_fixer)
+  - Validate ~/.cargo/config.toml setup
+  - Detect git auth failures
+  - Suggest SSH improvements
+  - Reuse cargo_git_fixer.py code as module
+- Success Criteria:
+  - [ ] blade fix-git validates cargo config
+  - [ ] Proper error messages for auth issues
+  - [ ] SSH setup instructions provided
+  - [ ] Tests pass
+  - [ ] cargo_git_fixer.py documented as internal
 
 ---
 
