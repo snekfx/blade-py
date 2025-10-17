@@ -1,0 +1,43 @@
+Last Updated: 2025-10-17
+
+# Quick Reference - 30-Second Context
+
+## Current Focus
+BLADE core functionality stabilization (Milestone M1).
+
+## Project Status
+- ✅ Project structure in place with Meta Process v3
+- ✅ README and core docs updated
+- 🔄 Core Python CLI functional
+- ⬆️ Feature expansion and multi-language support planned
+
+## Critical Context
+- **No current blockers**
+- **Stack**: Python 3.8+, Git, Cargo (for Rust analysis)
+- **Main Entry**: `blade.py` CLI tool
+- **Testing**: pytest framework
+
+## Active Tasks
+(See TASKS.txt - currently no active tasks queued)
+
+## Key Commands
+```bash
+python blade.py --help          # CLI help
+python blade.py --version       # Version info
+python blade.py data            # Generate cache
+pytest tests/                   # Run tests
+black src/ tests/               # Format code
+ruff check --fix src/ tests/    # Lint code
+```
+
+## Immediate Next Steps
+1. Review ROADMAP.txt for strategic priorities
+2. Create first set of priority tasks from M1 milestone
+3. Run full test suite to establish baseline
+
+## Key Documentation
+- `START.txt` — entry point (read first!)
+- `PROCESS.txt` — development workflow
+- `ROADMAP.txt` — strategic milestones
+- `docs/dev/` — architecture and references
+- `README.md` — project overview

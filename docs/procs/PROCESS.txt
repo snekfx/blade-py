@@ -1,0 +1,215 @@
+Last Updated: 2025-10-17
+
+# BLADE Development Process Guide
+
+## Purpose
+- Single place to understand how we work on BLADE.
+- Keep contributors and agents oriented in <5 minutes.
+- Meta Process v3 compliant self-hydrating workflow.
+
+---
+
+## Core Workflow (5-minute onboarding)
+
+1. Read `QUICK_REF.txt` for current project status and focus
+2. Check `TASKS.txt` for active items; start or create a new task
+3. Inspect relevant docs in `docs/dev/` for technical references
+4. Develop & test with Python (pytest, linting, type checking)
+5. Update `HANDOFF.md` before ending session
+6. Move completed work to `DONE.txt`
+
+---
+
+## Development Rhythm
+
+- Favor small, reviewable changes
+- Keep docs and code in sync; update `ROADMAP.txt` when scope changes
+- Run format/lint/test commands before commit (see `docs/dev/CHECKLIST.md`)
+- BLADE is a Python project - use pytest, mypy, black, ruff
+
+---
+
+## Repository Map
+
+- `START.txt` — orientation entry point (root)
+- `README.md` — project overview and installation
+- `docs/dev/` — architecture, module specs, testing guides
+- `docs/ref/` — integration strategies, version management
+- `blade.py` — main CLI entry point
+- `src/` — core Python modules
+- `tests/` — pytest test suites
+- `bin/` — utility scripts and deployment
+
+---
+
+## Process Document Structure (v3)
+
+### docs/procs/ (Process & Status)
+- `PROCESS.txt` — this file (master workflow guide)
+- `HANDOFF.md` — session documentation (MANDATORY at session end)
+- `QUICK_REF.txt` — 30-second context snapshot
+- `TASKS.txt` — active work only (no completed items)
+- `DONE.txt` — completed work archive (current period)
+- `ROADMAP.txt` — strategic milestones and backlog
+
+### Critical Hygiene Rules
+- ✅ Update `HANDOFF.md` every session (MANDATORY)
+- ✅ Remove completed items from `TASKS.txt` IMMEDIATELY
+- ✅ Archive to `DONE.txt` when completing work
+- ✅ When `DONE.txt` exceeds 500 lines, move to `_archive/DONE.old.txt`
+- ✅ Add "Last Updated: YYYY-MM-DD" timestamp to all process files
+
+---
+
+## Communication & Handoffs
+
+- `HANDOFF.md` captures session notes, blockers, decisions, and what comes next
+- Use inline TODOs sparingly; convert to `ROADMAP.txt` or `TASKS.txt` quickly
+- Session handoffs are COMPREHENSIVE - sufficient context for continuation
+
+---
+
+## Adding Work
+
+1. **Strategic/Medium-term work** → `ROADMAP.txt` (as TODO-NN items with full details)
+2. **Ready-to-go tasks** → `TASKS.txt` (when graduating from ROADMAP)
+3. **Completed items** → `DONE.txt` (with commit hashes and metrics)
+
+### Task Template Structure
+
+```
+**[EPIC-NN]: Task Title** [X SP] ⭐ PRIORITY
+
+- **Context**: Why this task exists and its importance
+- **Files**: src/module.py, tests/test_module.py
+- **Success Criteria**:
+  - [ ] Implementation complete
+  - [ ] Tests added and passing
+  - [ ] Documentation updated
+  - [ ] Ready for review
+```
+
+### Epic Naming Convention
+- **DOCS-NN**: Documentation work
+- **BUGS-NN**: Bug fixes and corrections
+- **UAT-NN**: User acceptance testing
+- **QOL-NN**: Quality of life improvements
+- **REF-NN**: Refactoring and code cleanup
+- **HUB-NN**: Hub integration work
+- **BLADE-NN**: BLADE-specific features
+- **M0**: Setup/skeleton/foundational tasks (milestone 0)
+- **TODO-NN**: Backlog items in ROADMAP (not in TASKS until graduated)
+
+---
+
+## Tooling Expectations
+
+**Python Development**:
+- Use `pytest` for testing
+- Run `black` for code formatting
+- Use `ruff` for linting
+- Enable `mypy` for type checking where applicable
+- Document with docstrings
+
+**Code Quality Before Merge**:
+```bash
+black src/ tests/        # Format
+ruff check --fix src/ tests/  # Lint
+pytest tests/            # Test
+mypy src/               # Type check (if enabled)
+```
+
+**BLADE CLI Testing**:
+```bash
+python blade.py --help
+python blade.py [command] --dry-run
+```
+
+---
+
+## Session Structure
+
+### Session Start
+1. Read `QUICK_REF.txt` for context
+2. Review `HANDOFF.md` for prior session notes
+3. Check `TASKS.txt` for priorities
+4. Pick a task or create a stub
+
+### Session Work
+- Implement with focus and minimal context switching
+- Run tests/checks frequently
+- Update documentation as you go
+- Commit meaningful, atomic changes
+
+### Session End (MANDATORY)
+1. Update `HANDOFF.md` with:
+   - What you completed
+   - Key learnings and decisions
+   - Files modified with rationale
+   - Next steps and blockers
+   - Commits with summaries
+2. Move completed work to `DONE.txt`
+3. Remove completed items from `TASKS.txt`
+4. Add "Last Updated" timestamp to modified process files
+5. Leave project in ready state for next session
+
+---
+
+## Story Point Guidelines
+
+- **1 SP**: 1-2 hours, single file, clear pattern
+- **2 SP**: Half day, 2-3 files, straightforward
+- **3 SP**: Full day, multiple files, some complexity
+- **5 SP**: 2-3 days, significant work, integration needed
+- **8 SP**: Week-long, major feature, should break down
+- **13+ SP**: TOO LARGE - must break down into smaller tasks
+
+---
+
+## Backlog Management
+
+**ROADMAP.txt holds backlog as TODO-NN**:
+- Full details included (context, requirements, story points)
+- Prioritized by urgency
+- Graduated to TASKS.txt when ready for active work
+
+**Rule**: Tasks.txt backlog items MUST come from ROADMAP graduation
+
+---
+
+## Git Workflow Notes
+
+- Keep main branch stable
+- Feature/fix branches for substantial work
+- Meaningful commit messages
+- Link to TASKS when applicable (e.g., "BLADE-05: Add caching layer")
+
+---
+
+## Maintenance Schedule
+
+### Every Session
+- [ ] Update HANDOFF.md
+- [ ] Update "Last Updated" timestamps in process files
+- [ ] Move completed work to DONE.txt
+- [ ] Remove completed items from TASKS.txt
+
+### When Focus Shifts
+- [ ] Update QUICK_REF.txt with new focus
+- [ ] Update TASKS.txt priorities
+- [ ] Review ROADMAP.txt for graduation
+
+### When DONE.txt Grows Large (500+ lines)
+- [ ] Move to _archive/DONE.old.txt
+- [ ] Create fresh DONE.txt for new period
+
+### Periodic
+- [ ] Validate docs with bin/validate-docs.sh (if exists)
+- [ ] Review and update PROCESS.txt as workflow evolves
+- [ ] Archive old session materials
+
+---
+
+Last Updated: 2025-10-17
+Meta Process: v3
+Applies To: BLADE Project

@@ -1,0 +1,25 @@
+====
+ 🚀 BLADE - START HERE
+====
+
+Welcome to BLADE development! This is a self-hydrating workflow system.
+
+📋 **Read These in Order** (5-minute onboarding):
+1. docs/procs/PROCESS.txt ← Master workflow guide
+2. docs/procs/HANDOFF.md ← Current session status
+3. docs/procs/QUICK_REF.txt ← Project focus (30 seconds)
+4. docs/procs/TASKS.txt ← Active work items
+
+⚡ **Ultra-Fast Start** (30 seconds):
+→ Read docs/procs/QUICK_REF.txt for essential context
+
+🔍 **System Health Check**:
+→ Run ./bin/validate-docs.sh to verify documentation
+
+📁 **All Process Documents**: docs/procs/
+🔄 **Self-Hydrating System**: No manual context reconstruction!
+
+====
+Last Updated: 2025-10-17
+Meta Process: v3
+====

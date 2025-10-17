@@ -1,0 +1,152 @@
+Last Updated: 2025-10-17
+
+# Roadmap & Strategic Milestones
+
+## Completed Milestones
+- M0: Project structure setup ✅ (2025-10-17, v3 process implementation)
+
+## Current Milestone
+- M1: Core BLADE functionality stabilization (in progress)
+
+## Future Milestones (Prioritized)
+- M2: Professional UX & Boxy Integration
+- M3: Python Package Ecosystem
+- M4: Long-term Sustainability & Modernization
+
+---
+
+## Backlog (TODO-NN) - 25 SP Total
+
+All items are grounded in actual documentation gaps. See docs/ref/ for implementation details.
+
+### PRIORITY 1 (HIGH) - UX & Accessibility (10 SP)
+
+**TODO-01**: Implement Boxy Integration for CLI Output Enhancement [5 SP]
+- Context: Documented in BOXY_INTEGRATION.md - integrate Boxy rendering into 5+ blade commands
+- Files: blade.py, src/utils/boxy_helper.py
+- Requirements:
+  - Add Boxy rendering to: stats, conflicts, outdated, pkg-detail, review commands
+  - Environment variable control (REPOS_USE_BOXY)
+  - Graceful fallback when Boxy unavailable
+  - Reference: docs/ref/BOXY_INTEGRATION.md (8 view commands spec)
+- Success Criteria:
+  - [ ] Commands render with theme support when REPOS_USE_BOXY=1
+  - [ ] Fallback to plain output when Boxy missing
+  - [ ] Tests verify both paths
+  - [ ] Documentation updated
+- Why: Core UX improvement, professional appearance, zero maintenance cost
+
+**TODO-02**: Create Pure Python Boxy Wrapper Package [5 SP]
+- Context: Comprehensive 271-line spec in boxy_python_integration_strategies.md - currently unimplemented
+- Files: src/boxy_wrapper/, tests/test_boxy_wrapper.py
+- Requirements:
+  - Formalize inline render_with_boxy() as reusable package
+  - Core API: render(), render_from_config(), BoxyError exception
+  - Cross-platform support (Windows/macOS/Linux)
+  - All 12 checklist items in specification (lines 242-254)
+- Success Criteria:
+  - [ ] boxy_wrapper package with full API
+  - [ ] Comprehensive error handling
+  - [ ] Cross-platform tests passing
+  - [ ] Documentation complete
+- Why: Enables other Python CLI projects to use Boxy, reusable ecosystem infrastructure
+
+### PRIORITY 2 (MEDIUM) - Ecosystem & Quality (13 SP)
+
+**TODO-03**: Wrapper Enhancements - Streaming & Error Handling [3 SP]
+- Context: Next phase after wrapper creation - production readiness
+- Files: src/boxy_wrapper/, tests/
+- Requirements:
+  - Streaming support for large outputs
+  - Comprehensive error handling & logging
+  - Performance optimization (subprocess overhead)
+- Success Criteria:
+  - [ ] Streaming integration tests pass
+  - [ ] Error cases documented and tested
+  - [ ] Performance benchmarks established
+- Why: Production-readiness, handles large ecosystems
+
+**TODO-04**: Publish Boxy Wrapper to PyPI [3 SP]
+- Context: Enable broad adoption across Python CLI ecosystem
+- Files: setup.py, pyproject.toml, MANIFEST.in
+- Requirements:
+  - Package and publish to PyPI
+  - Semantic versioning (see TODO-06)
+  - Installation via pip: `pip install blade-boxy-wrapper`
+- Success Criteria:
+  - [ ] Package available on PyPI
+  - [ ] Installation instructions in README
+  - [ ] Usage examples in docs
+- Why: Broad adoption enabler, cross-project benefit
+
+**TODO-06**: Validate & Adapt SemVer Strategy for Python [2 SP]
+- Context: VERSION_STRAT.md heavily Rust/Cargo focused; need Python/PEP 440 adaptation
+- Files: docs/dev/BLADE_VERSIONING.md (new), VERSION_STRAT.md review
+- Requirements:
+  - Review VERSION_STRAT.md for Python applicability
+  - Create BLADE-specific versioning doc
+  - Align with PEP 440 standards
+  - Dynamic version reading already working (commit 25a0a88)
+- Success Criteria:
+  - [ ] docs/dev/BLADE_VERSIONING.md created
+  - [ ] Version strategy documented
+  - [ ] Versioning tested in CI/CD
+- Why: Strategic alignment, clear version management across ecosystem
+
+**TODO-07**: Audit & Segregate Documentation [2 SP]
+- Context: Several files are borrowed from other projects, causing confusion
+- Files: docs/ref/ (all), README.md sections
+- Requirements:
+  - Mark borrowed content (UAT_COMMANDS.md references /home/xnull/repos/code/rust/oodx/)
+  - Remove external project paths
+  - Create BLADE-specific integration docs
+  - Add docs/ref/README.md explaining file purposes
+- Success Criteria:
+  - [ ] All borrowed content clearly marked
+  - [ ] External references removed/annotated
+  - [ ] Navigation doc created
+  - [ ] No confusion about scope
+- Why: Clarity for maintainers, reduce confusion about project scope
+
+**TODO-08**: Refactor to Modern Python Package Structure [3 SP]
+- Context: Long-term sustainability - monolithic blade.py not following Python best practices
+- Files: Create blade/ directory, split blade.py into modules
+- Requirements:
+  - Create blade/__init__.py, blade/commands/, blade/utils/, blade/core/
+  - Modular command structure
+  - Proper package initialization
+  - Plugin architecture support prep
+- Success Criteria:
+  - [ ] Package structure created
+  - [ ] All imports work correctly
+  - [ ] Tests passing with new structure
+  - [ ] Documentation updated
+- Why: Long-term health, testing infrastructure, enables plugin architecture
+
+### PRIORITY 3 (LOW) - Future & Optimization (2 SP)
+
+**TODO-05**: Plan PyO3 Native Bindings Roadmap [2 SP]
+- Context: Performance optimization for large ecosystem analysis
+- Files: docs/dev/PYRUST_INTEGRATION.md (new)
+- Requirements:
+  - Research PyO3 integration with cargo analysis
+  - Document architecture strategy
+  - Identify bottleneck functions
+  - Create roadmap for future native bindings
+- Success Criteria:
+  - [ ] Architecture document created
+  - [ ] Performance baseline established
+  - [ ] Bottleneck analysis complete
+  - [ ] Roadmap prioritized
+- Why: Future optimization when needed, not urgent but strategically important
+
+---
+
+## Notes on Backlog
+
+- All TODO-NN items are grounded in actual documentation analysis (see /tmp/blade_analysis.md)
+- Gap analysis shows significant delta between designed and implemented features
+- Priority 1 items have immediate UX impact and are well-specified in docs/ref/
+- Items should graduate to TASKS.txt when ready for active development
+- See PROCESS.txt for task template and epic naming conventions
+

@@ -1,0 +1,32 @@
+Last Updated: 2025-10-17
+
+# Active Tasks
+
+Keep this list lean. Only in-progress or ready-to-start items belong here.
+
+## Task Template
+
+**[EPIC-NN]: Task Title** [X SP] ⭐ PRIORITY
+
+- **Context**: Why this task exists
+- **Files**: Relevant file paths
+- **Success Criteria**:
+  - [ ] Implementation complete
+  - [ ] Tests added and passing
+  - [ ] Documentation updated
+  - [ ] Ready for review
+
+## ACTIVE WORK 🔄
+
+(No active tasks currently - see ROADMAP.txt for backlog)
+
+## Epic Naming Convention
+
+- **DOCS-NN**: Documentation work
+- **BUGS-NN**: Bug fixes and corrections
+- **UAT-NN**: User acceptance testing
+- **QOL-NN**: Quality of life improvements
+- **REF-NN**: Refactoring and code cleanup
+- **HUB-NN**: Hub integration work
+- **BLADE-NN**: BLADE-specific work
+- **M0**: Setup/skeleton/foundational tasks
