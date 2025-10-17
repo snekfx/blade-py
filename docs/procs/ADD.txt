@@ -1,0 +1,252 @@
+Last Updated: 2025-10-17
+
+# Architectural Design Decisions (ADD)
+
+This document captures architectural patterns and design decisions discovered during code analysis and refactoring work.
+
+## Purpose
+Track architectural constraints, patterns, and rationales to prevent drift and ensure consistency across refactoring efforts.
+
+## Meta Process v3 Compliance
+
+### Decision: Adopt Meta Process v3 Structure
+- **Date**: 2025-10-17
+- **Context**: Project needed clear process documentation and agent onboarding
+- **Decision**: Implement Meta Process v3 with docs/procs/ structure
+- **Rationale**:
+  - 5-minute agent onboarding
+  - Self-hydrating workflow system
+  - Zero context loss between sessions
+  - Battle-proven in RSB development
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: Single Entry Point Pattern
+- **Date**: 2025-10-17
+- **Context**: Multiple entry points cause confusion for new contributors
+- **Decision**: START.txt in root as sole process document at project root
+- **Rationale**:
+  - Clear orientation path
+  - Industry standard (LICENSE, README.md at root)
+  - All other process docs in docs/procs/
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: Mandatory Session Documentation
+- **Date**: 2025-10-17
+- **Context**: Context loss between sessions
+- **Decision**: HANDOFF.md updates are MANDATORY at end of every session
+- **Rationale**:
+  - Enables perfect session continuity
+  - Documents learnings and decisions
+  - Tracks experiments and dead ends
+  - Prevents information loss
+- **Status**: ✅ IMPLEMENTED
+
+## File Organization Patterns
+
+### Decision: bin/ for Utilities and Deployment Scripts
+- **Date**: 2025-10-17
+- **Context**: walker.py and cargo_git_fixer.py cluttering root
+- **Decision**: Move utility scripts to bin/
+- **Rationale**:
+  - Clear separation: blade.py (main CLI) vs utilities (bin/)
+  - Standard UNIX convention
+  - Deployment scripts logically grouped with tools
+- **Files Affected**: walker.py, cargo_git_fixer.py, deploy.sh
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: walker.py Naming (formerly blade-repo.py)
+- **Date**: 2025-10-17
+- **Context**: blade-repo.py was ambiguous and misleading
+- **Decision**: Rename to walker.py
+- **Rationale**:
+  - Describes function: walks repository trees
+  - UNIX terse naming convention
+  - Clear distinction from blade.py
+  - Follows project pattern of single-word tool names
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: cargo_git_fixer.py as One-Off Utility
+- **Date**: 2025-10-17
+- **Context**: Tool used for one-time migration
+- **Decision**: Keep in bin/ but exclude from deployment
+- **Rationale**:
+  - One-off utility, not core functionality
+  - May be useful for reference or re-runs
+  - No need to pollute system PATH
+- **Status**: ✅ IMPLEMENTED
+
+## Task Management Patterns
+
+### Decision: Epic Naming Convention
+- **Date**: 2025-10-17
+- **Context**: Need consistent task categorization
+- **Decision**: Use standard epic prefixes (BUGS-NN, QOL-NN, BLADE-NN, etc.)
+- **Rationale**:
+  - Clear categorization at a glance
+  - Enables filtering and reporting
+  - Matches Meta Process v3 patterns
+- **Patterns**:
+  - BUGS-NN: Bug fixes and corrections
+  - QOL-NN: Quality of life improvements
+  - DOCS-NN: Documentation work
+  - UAT-NN: User acceptance testing
+  - REF-NN: Refactoring and code cleanup
+  - HUB-NN: Hub integration work
+  - BLADE-NN: BLADE-specific strategic features
+  - M0: Setup/skeleton/foundational tasks
+  - TODO-NN: Backlog items in ROADMAP (graduated to TASKS when ready)
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: Story Point Sizing Guidelines
+- **Date**: 2025-10-17
+- **Context**: Need consistent effort estimation
+- **Decision**: Adopt standard SP scale with maximums
+- **Guidelines**:
+  - 1 SP: 1-2 hours, single file, clear pattern
+  - 2 SP: Half day, 2-3 files, straightforward
+  - 3 SP: Full day, multiple files, some complexity
+  - 5 SP: 2-3 days, significant work, integration needed
+  - 8 SP: Week-long, major feature, should break down
+  - 13+ SP: TOO LARGE - MUST break down
+- **Rationale**: Prevents oversized tasks, enables accurate tracking
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: ROADMAP as Strategic Backlog, TASKS as Active Work
+- **Date**: 2025-10-17
+- **Context**: Need separation between strategic planning and active work
+- **Decision**:
+  - ROADMAP.txt holds TODO-NN backlog items with full details
+  - TASKS.txt only contains graduated, ready-to-start items
+- **Rationale**:
+  - Clear separation of concerns
+  - TASKS.txt stays focused and manageable
+  - Backlog items graduate when prioritized
+  - Prevents TASKS.txt bloat
+- **Status**: ✅ IMPLEMENTED
+
+## Process Hygiene Patterns
+
+### Decision: Timestamps on All Process Files
+- **Date**: 2025-10-17
+- **Context**: Need to detect stale documentation
+- **Decision**: All docs/procs/ files MUST start with "Last Updated: YYYY-MM-DD"
+- **Rationale**:
+  - Staleness immediately visible
+  - Signals trust level of information
+  - v3 requirement for compliance
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: DONE.txt Archival at 500 Lines
+- **Date**: 2025-10-17
+- **Context**: DONE.txt can grow unbounded and become unwieldy
+- **Decision**: Archive to _archive/DONE.old.txt when exceeds 500 lines
+- **Rationale**:
+  - Keeps current file focused and fast to read
+  - Historical record preserved
+  - Clear current period vs archive
+- **Status**: ⚠️ PARTIALLY IMPLEMENTED (rule documented, no archive directory yet)
+
+### Decision: No Completed Work in TASKS.txt
+- **Date**: 2025-10-17
+- **Context**: Hygiene violation to leave completed work in active list
+- **Decision**: IMMEDIATELY remove completed items, archive to DONE.txt
+- **Rationale**:
+  - TASKS.txt remains focused
+  - Completed work properly archived
+  - Clear signal of what's pending
+- **Status**: ✅ IMPLEMENTED
+
+## Deployment Patterns
+
+### Decision: deploy.sh Deploys Core Tools Only
+- **Date**: 2025-10-17
+- **Context**: Deployment script should deploy production tools
+- **Decision**: Deploy blade and walker, exclude one-off utilities
+- **Rationale**:
+  - blade: Core dependency management
+  - walker: Repository discovery (complements blade)
+  - cargo_git_fixer: One-off migration tool (not for deployment)
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: No Claude/Claude Code Branding in Commits
+- **Date**: 2025-10-17 (inherited from user CLAUDE.md)
+- **Context**: User directive to avoid AI branding in commits
+- **Decision**: Never use Claude or Claude Code branding in commit messages
+- **Rationale**: Professional, human-authored appearance
+- **Status**: ✅ ENFORCED VIA USER CONFIG
+
+## Documentation Patterns
+
+### Decision: docs/dev/ for Development Guides
+- **Date**: 2025-10-17
+- **Context**: Need separation between process and technical reference
+- **Decision**:
+  - docs/procs/: Process and status tracking
+  - docs/dev/: Architecture, specs, technical guides
+  - docs/ref/: Integration strategies, external references
+- **Rationale**:
+  - Clear separation of concerns
+  - Easy navigation
+  - Standard convention across Oxidex projects
+- **Status**: ✅ IMPLEMENTED
+
+### Decision: START.txt Fast-Track for Urgent Context
+- **Date**: 2025-10-17
+- **Context**: Need 30-second context for urgent sessions
+- **Decision**: START.txt points to QUICK_REF.txt for ultra-fast start
+- **Rationale**:
+  - 5-minute full onboarding vs 30-second urgent start
+  - Flexibility for different session types
+  - Clear path: START.txt → QUICK_REF.txt (30s) or START.txt → PROCESS.txt (5min)
+- **Status**: ✅ IMPLEMENTED
+
+## Task Extraction Findings
+
+### Reality Check: TODO.txt vs TASKS.txt
+- **Date**: 2025-10-17
+- **Finding**: TODO.txt had 11 real bugs/features, 23 SP total
+- **Action Taken**:
+  - Extracted to TASKS.txt with proper epic structure
+  - Added context, files, success criteria
+  - Organized by priority (Critical → High → Medium)
+- **Note**: No fake tasks, no backlog items - all grounded in real issues
+- **Status**: ✅ VALIDATED
+
+### Reality Check: ROADMAP.txt Backlog
+- **Date**: 2025-10-17
+- **Finding**: 25 SP of Boxy integration work documented but not active
+- **Action Taken**:
+  - Moved to ROADMAP.txt as strategic backlog
+  - Kept separated from active TASKS.txt
+  - All items grounded in docs/ref/ specifications
+- **Status**: ✅ VALIDATED
+
+## Pending Decisions
+
+### Question: _archive/ Directory Creation
+- **Date**: 2025-10-17
+- **Context**: Meta Process v3 calls for _archive/ for DONE.old.txt
+- **Status**: ⚠️ NOT YET CREATED (directory doesn't exist)
+- **Recommendation**: Create when DONE.txt first exceeds 500 lines
+- **Severity**: LOW (not urgent, no completed work yet)
+
+### Question: TODO.txt Deprecation
+- **Date**: 2025-10-17
+- **Context**: TODO.txt exists in root, but all tasks now in TASKS.txt/ROADMAP.txt
+- **Status**: ⚠️ DEPRECATED BUT NOT REMOVED
+- **Recommendation**: Archive to _archive/TODO.old.txt or delete after validation
+- **Severity**: MEDIUM (causes confusion about single source of truth)
+
+### Question: bin/validate-docs.sh Integration
+- **Date**: 2025-10-17
+- **Context**: Validation script exists, START.txt references it
+- **Status**: ⚠️ UNKNOWN IF FUNCTIONAL
+- **Recommendation**: Test and verify script validates v3 structure
+- **Severity**: LOW (nice-to-have automation)
+
+## Notes
+
+- All architectural decisions should align with Meta Process v3 principles
+- When patterns conflict with specifications, escalate to stakeholder
+- Document deviations from standard Rust/Python patterns with rationale
+- This file should be updated as new patterns are discovered or decided
