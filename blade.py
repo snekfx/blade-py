@@ -41,6 +41,7 @@ import signal
 import termios
 import tty
 import io
+import hashlib
 from pathlib import Path
 from collections import defaultdict
 from packaging import version
@@ -1364,6 +1365,84 @@ def find_all_cargo_files_fast() -> List[Path]:
         print(f"{Colors.YELLOW}⚠️  find command not available, using Python search{Colors.END}")
         return find_cargo_files(RUST_REPO_ROOT)
 
+def compute_tree_md5(cargo_files: List[Path]) -> str:
+    """Compute MD5 hash of the Cargo.toml file list for cache validation.
+
+    This identifies the current state of the repository tree. If the list of
+    Cargo.toml files hasn't changed, we can reuse cached data.
+    """
+    hasher = hashlib.md5()
+    # Sort paths for consistent hashing across runs
+    for cargo_path in sorted(str(p) for p in cargo_files):
+        hasher.update(cargo_path.encode())
+    return hasher.hexdigest()
+
+
+def get_tree_metadata_path() -> str:
+    """Get path to tree metadata file (stores MD5 of last scan)"""
+    return get_cache_file_path("tree_metadata.json")
+
+
+def load_tree_metadata() -> Optional[dict]:
+    """Load cached tree metadata including MD5 and timestamp"""
+    metadata_path = get_tree_metadata_path()
+    if not Path(metadata_path).exists():
+        return None
+    try:
+        with open(metadata_path, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_tree_metadata(cargo_files: List[Path], processing_time: float):
+    """Save tree metadata for future cache validation"""
+    metadata = {
+        'tree_md5': compute_tree_md5(cargo_files),
+        'file_count': len(cargo_files),
+        'timestamp': time.time(),
+        'processing_time': processing_time
+    }
+    metadata_path = get_tree_metadata_path()
+    try:
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+    except IOError as e:
+        print(f"{Colors.YELLOW}⚠️  Could not save tree metadata: {e}{Colors.END}")
+
+
+def should_use_cached_data(cargo_files: List[Path]) -> bool:
+    """Check if cached data is valid (tree hasn't changed)
+
+    Returns True if:
+    1. Cache files exist
+    2. Tree MD5 matches current scan
+    3. Cached data is not too old (optional: < 1 day)
+    """
+    # Check if cache files exist
+    cache_file = Path(get_data_file_path("deps_cache.tsv"))
+    if not cache_file.exists():
+        return False
+
+    # Load and compare tree metadata
+    metadata = load_tree_metadata()
+    if not metadata:
+        return False
+
+    current_md5 = compute_tree_md5(cargo_files)
+    cached_md5 = metadata.get('tree_md5')
+
+    if current_md5 != cached_md5:
+        return False
+
+    # Optional: Check cache age (keep cache valid for up to 24 hours)
+    cache_age = time.time() - metadata.get('timestamp', 0)
+    if cache_age > 86400:  # 24 hours
+        return False
+
+    return True
+
+
 def get_repo_info(cargo_path: Path) -> Optional[Dict]:
     """Get repository information from Cargo.toml file"""
     try:
@@ -2463,8 +2542,20 @@ def generate_data_cache(dependencies, fast_mode=False):
 
     # Phase 1: Discovery
     print(f"{Colors.CYAN}Phase 1: Discovering Cargo.toml files...{Colors.END}")
+    start_time = time.time()
     cargo_files = find_all_cargo_files_fast()
     print(f"Found {len(cargo_files)} Cargo.toml files")
+
+    # MD5 CACHE CHECK: If tree hasn't changed, use cached data
+    if should_use_cached_data(cargo_files):
+        metadata = load_tree_metadata()
+        cache_age_hours = (time.time() - metadata.get('timestamp', 0)) / 3600
+        print(f"\n{Colors.GREEN}✨ Cache is valid! Tree structure unchanged.{Colors.END}")
+        print(f"   MD5 matches current scan (cached {cache_age_hours:.1f}h ago)")
+        print(f"   Previous processing took {metadata.get('processing_time', 0):.1f}s")
+        output_file = get_data_file_path("deps_cache.tsv")
+        print(f"   Using cached data from {output_file}\n")
+        return
 
     # Phase 2: Extract repo metadata (excluding hub)
     print(f"{Colors.CYAN}Phase 2: Extracting repository metadata...{Colors.END}")
@@ -2497,7 +2588,12 @@ def generate_data_cache(dependencies, fast_mode=False):
     print(f"{Colors.CYAN}Phase 6: Writing cache to {output_file}...{Colors.END}")
     write_tsv_cache(repos, deps, latest_versions, version_maps, output_file)
 
+    # Save tree metadata for future cache validation
+    processing_time = time.time() - start_time
+    save_tree_metadata(cargo_files, processing_time)
+
     print(f"\n{Colors.GREEN}{Colors.BOLD}✅ Data cache generated: {output_file}{Colors.END}")
+    print(f"   Processed in {processing_time:.2f}s")
 
 # ============================================================================
 # OPTIMIZED VIEW FUNCTIONS - Using hydrated TSV data for lightning-fast analysis
