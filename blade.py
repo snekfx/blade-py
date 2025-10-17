@@ -1136,7 +1136,8 @@ def analyze_hub_status(dependencies):
     # Find opportunities (5+ usage packages not in hub)
     opportunities = []
     for dep_name, usage_count in package_usage.items():
-        if usage_count >= 5 and dep_name not in hub_deps:
+        # Filter: exclude rsb and hub themselves from opportunities
+        if usage_count >= 5 and dep_name not in hub_deps and dep_name not in ['rsb', 'hub']:
             latest_ver = latest_cache.get(dep_name, "unknown")
             opportunities.append((dep_name, usage_count, latest_ver))
 
@@ -5493,7 +5494,7 @@ EXAMPLES:
     parser.add_argument('--version', action='version', version=f'blade v{__version__}')
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
-                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git'],
+                               'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git', 'latest'],
                        help='Command to run (see categories below)')
     parser.add_argument('package', nargs='?', help='Package/repo name for specific commands')
     parser.add_argument('--ssh-profile', default=None, help='SSH profile/host for git operations')
