@@ -2131,15 +2131,57 @@ def hydrate_tsv_cache(cache_file: str = None) -> EcosystemData:
 
 # === VIEW HELPER FUNCTIONS ===
 
+def get_hub_repo_id(ecosystem: EcosystemData) -> Optional[int]:
+    """Get the hub repository ID from ecosystem data.
+
+    Instead of hard-coding repo_id 103, derive it from RepoData
+    by finding the repo with repo_name == "hub".
+    """
+    for repo in ecosystem.repos.values():
+        if repo.repo_name == "hub":
+            return repo.repo_id
+    return None
+
+
+def is_local_or_workspace_dep(dep: DepData) -> bool:
+    """Check if a dependency is a local or workspace dependency.
+
+    Handles both legacy ('path', 'workspace') and new ('LOCAL', 'WORKSPACE') formats.
+    """
+    return dep.pkg_version in ['path', 'workspace', 'LOCAL', 'WORKSPACE']
+
+
+def should_exclude_from_stats(dep: DepData, hub_repo_id: Optional[int]) -> bool:
+    """Check if a dependency should be excluded from stats/usage calculations.
+
+    Excludes:
+    1. Local/workspace dependencies
+    2. Dependencies from the hub repository itself
+    """
+    # Skip local/workspace dependencies
+    if is_local_or_workspace_dep(dep):
+        return True
+
+    # Skip dependencies from hub repository
+    if hub_repo_id is not None and dep.repo_id == hub_repo_id:
+        return True
+
+    return False
+
+
 def get_package_usage_count(ecosystem: EcosystemData, pkg_name: str) -> int:
-    """Get count of repositories using a specific package"""
-    return len([dep for dep in ecosystem.deps.values() if dep.pkg_name == pkg_name])
+    """Get count of repositories using a specific package, excluding hub and local/workspace deps"""
+    hub_repo_id = get_hub_repo_id(ecosystem)
+    return len([dep for dep in ecosystem.deps.values()
+                if dep.pkg_name == pkg_name and not should_exclude_from_stats(dep, hub_repo_id)])
 
 def get_packages_by_usage(ecosystem: EcosystemData) -> List[Tuple[str, int]]:
-    """Get packages sorted by usage count (descending)"""
+    """Get packages sorted by usage count, excluding hub and local/workspace deps"""
+    hub_repo_id = get_hub_repo_id(ecosystem)
     usage_counts = {}
     for dep in ecosystem.deps.values():
-        usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
+        if not should_exclude_from_stats(dep, hub_repo_id):
+            usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
 
     return sorted(usage_counts.items(), key=lambda x: (-x[1], x[0]))
 
@@ -2869,14 +2911,12 @@ def view_hub_dashboard(ecosystem: EcosystemData) -> None:
             print(f"  {Colors.WHITE}{pkg_name} {hub_ver} {latest_ver} {usage} {safety}")
 
     # Find packages with high usage but not in hub (opportunities)
-    # Count usage excluding hub repository (repo_id 103) like legacy
+    # Count usage excluding hub repository like legacy
+    hub_repo_id = get_hub_repo_id(ecosystem)
     all_packages = {}
     for dep in ecosystem.deps.values():
-        # Skip dependencies from hub repository like legacy does
-        if dep.repo_id == 103:
-            continue
-        # Skip path and workspace dependencies
-        if dep.pkg_version in ['path', 'workspace']:
+        # Skip dependencies that should be excluded
+        if should_exclude_from_stats(dep, hub_repo_id):
             continue
 
         pkg_name = dep.pkg_name
@@ -2913,7 +2953,7 @@ def view_hub_dashboard(ecosystem: EcosystemData) -> None:
     # Build package usage map for ecosystem
     package_usage = {}
     for dep in ecosystem.deps.values():
-        if dep.pkg_version not in ['path', 'workspace'] and dep.repo_id != 103:  # Exclude hub repo
+        if not should_exclude_from_stats(dep, hub_repo_id):  # Exclude hub repo and local/workspace
             if dep.pkg_name not in package_usage:
                 package_usage[dep.pkg_name] = set()
             package_usage[dep.pkg_name].add(dep.repo_id)
@@ -3360,14 +3400,11 @@ def view_review(ecosystem: EcosystemData) -> None:
     print(f"{Colors.GRAY}{'-'*85}{Colors.END}")
 
     # Collect all packages with usage stats, filtering out path/workspace deps and hub repo
+    hub_repo_id = get_hub_repo_id(ecosystem)
     package_stats = {}
     for dep in ecosystem.deps.values():
-        # Skip path and workspace dependencies like legacy does
-        if dep.pkg_version in ['path', 'workspace']:
-            continue
-
-        # Skip dependencies from hub repository (repo_id 103) - this is the key filter!
-        if dep.repo_id == 103:
+        # Skip dependencies that should be excluded
+        if should_exclude_from_stats(dep, hub_repo_id):
             continue
 
         pkg_name = dep.pkg_name
@@ -3538,15 +3575,12 @@ def view_usage(ecosystem: EcosystemData) -> None:
                 'latest': latest_info.latest_version
             }
 
-    # Collect usage stats, filtering out path/workspace deps and hub repo like legacy
+    # Collect usage stats, filtering out path/workspace deps and hub repo
+    hub_repo_id = get_hub_repo_id(ecosystem)
     package_consumers = {}
     for dep in ecosystem.deps.values():
-        # Skip path and workspace dependencies like legacy does
-        if dep.pkg_version in ['path', 'workspace']:
-            continue
-
-        # Skip dependencies from hub repository (repo_id 103) - this is the key filter!
-        if dep.repo_id == 103:
+        # Skip dependencies that should be excluded (local/workspace/hub)
+        if should_exclude_from_stats(dep, hub_repo_id):
             continue
 
         pkg_name = dep.pkg_name
@@ -3758,17 +3792,19 @@ def view_stats(ecosystem: EcosystemData) -> None:
                 if key != "generated_at":
                     output_lines.append(f"  {Colors.BLUE}•{Colors.END} {key.replace('_', ' ').title()}: {Colors.GREEN}{value}{Colors.END}")
 
-        # Package distribution
+        # Package distribution (using consistent filtering)
+        hub_repo_id = get_hub_repo_id(ecosystem)
         usage_counts = {}
         for dep in ecosystem.deps.values():
-            usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
+            if not should_exclude_from_stats(dep, hub_repo_id):
+                usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
 
         sorted_packages = sorted(usage_counts.items(), key=lambda x: x[1], reverse=True)
 
         output_lines.append("")
         output_lines.append(f"{Colors.YELLOW}📦 Top 10 Most Used Packages:{Colors.END}")
         for pkg, count in sorted_packages[:10]:
-            bar_length = int((count / sorted_packages[0][1]) * 30)
+            bar_length = int((count / sorted_packages[0][1]) * 30) if sorted_packages else 0
             bar = "█" * bar_length
             output_lines.append(f"  {pkg:20} {Colors.GREEN}{bar}{Colors.END} ({count})")
 
@@ -3808,16 +3844,18 @@ def view_stats(ecosystem: EcosystemData) -> None:
                 if key != "generated_at":
                     print(f"  {Colors.BLUE}•{Colors.END} {key.replace('_', ' ').title()}: {Colors.GREEN}{value}{Colors.END}")
 
-        # Package distribution
+        # Package distribution (using consistent filtering)
+        hub_repo_id = get_hub_repo_id(ecosystem)
         usage_counts = {}
         for dep in ecosystem.deps.values():
-            usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
+            if not should_exclude_from_stats(dep, hub_repo_id):
+                usage_counts[dep.pkg_name] = usage_counts.get(dep.pkg_name, 0) + 1
 
         sorted_packages = sorted(usage_counts.items(), key=lambda x: x[1], reverse=True)
 
         print(f"\n{Colors.YELLOW}📦 Top 10 Most Used Packages:{Colors.END}")
         for pkg, count in sorted_packages[:10]:
-            bar_length = int((count / sorted_packages[0][1]) * 30)
+            bar_length = int((count / sorted_packages[0][1]) * 30) if sorted_packages else 0
             bar = "█" * bar_length
             print(f"  {pkg:20} {Colors.GREEN}{bar}{Colors.END} ({count})")
 
@@ -5034,14 +5072,12 @@ def learn_all_opportunities(ecosystem: EcosystemData) -> int:
     actual_hub_packages = {name for name, info in ecosystem.latest.items()
                           if info.hub_status in ['current', 'outdated']}
 
-    # Count usage excluding hub repository (repo_id 103)
+    # Count usage excluding hub repository and local/workspace
+    hub_repo_id = get_hub_repo_id(ecosystem)
     all_packages = {}
     for dep in ecosystem.deps.values():
-        # Skip dependencies from hub repository
-        if dep.repo_id == 103:
-            continue
-        # Skip path and workspace dependencies
-        if dep.pkg_version in ['path', 'workspace']:
+        # Skip dependencies that should be excluded
+        if should_exclude_from_stats(dep, hub_repo_id):
             continue
 
         pkg_name = dep.pkg_name
