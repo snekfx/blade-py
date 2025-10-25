@@ -1,6 +1,6 @@
 [project]
 name = "blade"
-version = "2.0.0"
+version = "2.1.0"
 description = "Advanced Dependency Management and Repository Analysis Tool for Rust Ecosystems"
 authors = [
     {name = "snekfx", email = "noreply@snekfx.dev"}

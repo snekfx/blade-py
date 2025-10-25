@@ -7,8 +7,12 @@ SNAKE_BIN_DIR="$HOME/.local/bin/snek"
 # Resolve repository root from bin/
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Extract version from blade.py or default
-VERSION=$(grep -E "^__version__|^VERSION\s*=" "$ROOT_DIR/blade.py" | head -1 | cut -d'"' -f2 2>/dev/null || echo "2.0.0-dev")
+# Extract version from pyproject.toml
+if [ -f "$ROOT_DIR/pyproject.toml" ]; then
+    VERSION=$(grep -E "^version\s*=" "$ROOT_DIR/pyproject.toml" | head -1 | cut -d'"' -f2 2>/dev/null || echo "unknown")
+else
+    VERSION="unknown"
+fi
 
 # Display deployment ceremony
 echo "╔════════════════════════════════════════════════╗"
@@ -29,18 +33,20 @@ REPOS_SOURCE="$ROOT_DIR/blade.py"
 BLADE_TARGET="$SNAKE_BIN_DIR/blade"
 
 if [ -f "$REPOS_SOURCE" ]; then
-    # Deploy as blade
-    if ! cp "$REPOS_SOURCE" "$BLADE_TARGET"; then
-        echo "❌ Failed to copy blade to $BLADE_TARGET"
-        exit 1
-    fi
+    # Inject version into blade.py header before deployment
+    # Read the shebang line, add version comment, then rest of file
+    (
+        head -n 1 "$REPOS_SOURCE"  # First line (shebang)
+        echo "# version:$VERSION"  # Inject version comment
+        tail -n +2 "$REPOS_SOURCE" # Rest of file
+    ) > "$BLADE_TARGET"
 
     if ! chmod +x "$BLADE_TARGET"; then
         echo "❌ Failed to make blade executable"
         exit 1
     fi
 
-    echo "✅ Blade tool deployed to $BLADE_TARGET"
+    echo "✅ Blade tool deployed to $BLADE_TARGET (v$VERSION)"
 
     # Test the deployment
     echo "🧪 Testing blade deployment..."

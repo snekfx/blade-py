@@ -45,21 +45,228 @@ import hashlib
 from pathlib import Path
 from collections import defaultdict
 from packaging import version
+from packaging import version as pkg_version
 import subprocess
-import version_utils
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
 
+# ============================================================================
+# Logo and Version
+# ============================================================================
+
+BLADE_LOGO = """┏┓ ╻  ┏━┓╺┳┓┏━╸
+┣┻┓┃  ┣━┫ ┃┃┣╸
+┗━┛┗━╸╹ ╹╺┻┛┗━╸py"""
+
+
+class VersionAction(argparse.Action):
+    """Custom version action that displays logo and version info."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(BLADE_LOGO)
+        print(f"\nVersion: {__version__} | License: MIT")
+        print("Copyright © 2025 Qodeninja/SnekFX")
+        print("\n🗡️  Advanced Dependency Management for Rust Ecosystems")
+        parser.exit()
+
+# ============================================================================
+# Version utilities for proper canonicalization and pre-release handling
+# ============================================================================
+
+def canonicalize_version(ver_str):
+    """
+    Parse and canonicalize a version string.
+
+    Returns a normalized packaging.version.Version object that treats
+    equivalent versions like 2.0 and 2.0.0 as equal.
+
+    Args:
+        ver_str: Version string (e.g., "2.0", "2.0.0", "1.0.0-rc1")
+
+    Returns:
+        packaging.version.Version object or None if parsing fails
+    """
+    if not ver_str or ver_str == 'path' or 'workspace' in str(ver_str):
+        return None
+
+    # Clean up version string
+    ver_str = str(ver_str).strip('"').split()[0]
+
+    # Handle leading '='
+    if ver_str.startswith('='):
+        ver_str = ver_str[1:]
+
+    try:
+        # packaging.version.Version automatically normalizes versions
+        # so 2.0 and 2.0.0 become the same object
+        return pkg_version.parse(ver_str)
+    except (pkg_version.InvalidVersion, ValueError):
+        return None
+
+
+def is_prerelease(ver_obj):
+    """
+    Check if a version is a pre-release (alpha, beta, rc, etc.).
+
+    Args:
+        ver_obj: packaging.version.Version object or version string
+
+    Returns:
+        True if pre-release, False otherwise
+    """
+    if isinstance(ver_obj, str):
+        parsed = canonicalize_version(ver_obj)
+        if not parsed:
+            return False
+        ver_obj = parsed
+
+    if ver_obj is None:
+        return False
+
+    return ver_obj.is_prerelease
+
+
+def filter_prerelease(versions):
+    """
+    Filter out pre-release versions from a list.
+
+    Args:
+        versions: List of packaging.version.Version objects or version strings
+
+    Returns:
+        List of stable versions only
+    """
+    stable = []
+    for ver in versions:
+        if isinstance(ver, str):
+            parsed = canonicalize_version(ver)
+            if parsed and not parsed.is_prerelease:
+                stable.append(parsed)
+        else:
+            if ver and not ver.is_prerelease:
+                stable.append(ver)
+    return stable
+
+
+def get_latest_stable(versions):
+    """
+    Get the latest stable (non-prerelease) version from a list.
+
+    Args:
+        versions: List of packaging.version.Version objects or version strings
+
+    Returns:
+        Latest stable version or None if no stable versions found
+    """
+    stable = filter_prerelease(versions)
+    if not stable:
+        return None
+
+    # packaging.version.Version objects support comparison operators
+    return max(stable)
+
+
+def parse_version_metadata(ver_str):
+    """
+    Parse version metadata (e.g., v2.0.0-deprecated).
+
+    Args:
+        ver_str: Version string possibly with metadata
+
+    Returns:
+        Dict with 'version' (Version object) and 'metadata' (string) keys
+    """
+    if not ver_str:
+        return {'version': None, 'metadata': None}
+
+    ver_str = str(ver_str).strip()
+
+    # Handle leading 'v'
+    if ver_str.startswith('v'):
+        ver_str = ver_str[1:]
+
+    # Check for metadata after hyphen (outside of pre-release markers)
+    # e.g., "2.0.0-deprecated" -> version="2.0.0", metadata="deprecated"
+    # BUT "2.0.0-rc1" -> this is a pre-release, not metadata
+
+    try:
+        parsed = pkg_version.parse(ver_str)
+
+        # If there's a local version identifier, that's our metadata
+        if parsed.local:
+            return {
+                'version': parsed,
+                'metadata': parsed.local
+            }
+
+        return {
+            'version': parsed,
+            'metadata': None
+        }
+    except (pkg_version.InvalidVersion, ValueError):
+        return {'version': None, 'metadata': None}
+
+
+def versions_equal(ver1, ver2):
+    """
+    Check if two versions are equivalent.
+
+    Args:
+        ver1, ver2: Version strings or packaging.version.Version objects
+
+    Returns:
+        True if versions are equal, False otherwise
+    """
+    # Parse if strings
+    if isinstance(ver1, str):
+        parsed1 = canonicalize_version(ver1)
+    else:
+        parsed1 = ver1
+
+    if isinstance(ver2, str):
+        parsed2 = canonicalize_version(ver2)
+    else:
+        parsed2 = ver2
+
+    # Handle None cases
+    if parsed1 is None or parsed2 is None:
+        return parsed1 == parsed2
+
+    # Use packaging's built-in equality (handles 2.0 == 2.0.0)
+    return parsed1 == parsed2
+
+# ============================================================================
+
 def get_version():
-    """Read version from pyproject.toml"""
+    """Read version from pyproject.toml or fallback to header comment.
+
+    When deployed, the version is injected as a comment in the script header
+    by deploy.sh in the format: # version:X.Y.Z
+    """
+    # First try pyproject.toml (for development)
     try:
         pyproject_path = Path(__file__).parent / "pyproject.toml"
         if pyproject_path.exists():
             pyproject_data = load_toml(pyproject_path)
-            return pyproject_data.get('project', {}).get('version', 'unknown')
+            version = pyproject_data.get('project', {}).get('version')
+            if version:
+                return version
     except Exception:
         pass
+
+    # Fallback to reading version comment from this script (for deployed version)
+    try:
+        with open(__file__, 'r') as f:
+            for line in f:
+                if line.startswith('# version:'):
+                    return line.split(':', 1)[1].strip()
+                # Only check first ~20 lines of header
+                if not line.startswith('#') and line.strip():
+                    break
+    except Exception:
+        pass
+
     return 'unknown'
 
 __version__ = get_version()
@@ -419,12 +626,12 @@ class ProgressSpinner:
         sys.stdout.flush()
 
 def parse_version(ver_str):
-    """Parse and canonicalize version string using version_utils.
+    """Parse and canonicalize version string.
 
     Handles workspace and path dependencies, and normalizes version formats
     so that 2.0 and 2.0.0 are treated as equivalent.
     """
-    return version_utils.canonicalize_version(ver_str)
+    return canonicalize_version(ver_str)
 
 def is_breaking_change(from_version, to_version):
     """Check if version change represents a breaking change according to Rust SemVer"""
@@ -479,7 +686,7 @@ def get_latest_version(package_name):
 def get_latest_stable_version(package_name):
     """Get latest stable version from crates.io (excluding pre-releases).
 
-    Explicitly verifies returned version is not a pre-release using version_utils.
+    Explicitly verifies returned version is not a pre-release.
     """
     try:
         url = f"https://crates.io/api/v1/crates/{package_name}"
@@ -490,14 +697,14 @@ def get_latest_stable_version(package_name):
             stable_ver = data['crate'].get('max_stable_version') or data['crate']['max_version']
 
             # Verify it's actually stable (not a pre-release)
-            if stable_ver and not version_utils.is_prerelease(stable_ver):
+            if stable_ver and not is_prerelease(stable_ver):
                 return stable_ver
 
             # If fallback was a pre-release, scan versions list for latest stable
             versions = data['crate'].get('versions', [])
             for ver in versions:
                 ver_num = ver.get('num')
-                if ver_num and not version_utils.is_prerelease(ver_num):
+                if ver_num and not is_prerelease(ver_num):
                     return ver_num
 
             # Last resort: return the stable field value even if it looks like prerelease
@@ -5765,7 +5972,7 @@ EXAMPLES:
   blade scan-git fix-urls        # Fix HTTPS→SSH git URLs
         ''')
 
-    parser.add_argument('--version', action='version', version=f'blade v{__version__}')
+    parser.add_argument('--version', action=VersionAction, nargs=0)
     parser.add_argument('command', nargs='?', default='conflicts',
                        choices=['repos', 'conflicts', 'usage', 'u', 'q', 'review', 'hub', 'update', 'eco', 'pkg', 'export', 'data', 'superclean', 'ls', 'legacy',
                                'stats', 'deps', 'outdated', 'search', 'graph', 'learn', 'notes', 'fix-git', 'scan-git', 'latest'],
